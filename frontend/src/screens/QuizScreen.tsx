@@ -40,7 +40,7 @@ export const QuizScreen: React.FC = () => {
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim()) return toast.error('Please enter a topic');
+    if (!topic.trim()) return toast.error('Vui lòng nhập chủ đề');
     setIsGenerating(true);
     try {
       const res = await apiClient.post('/api/quiz/generate', { topic, num_questions: numQuestions });
@@ -50,7 +50,7 @@ export const QuizScreen: React.FC = () => {
       setStartTime(Date.now());
       setStep('taking');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to generate quiz. Is the Gemini API key set?');
+      toast.error(err?.response?.data?.detail || 'Tạo bài trắc nghiệm thất bại. API key của Gemini đã được cài đặt chưa?');
     } finally {
       setIsGenerating(false);
     }
@@ -68,7 +68,7 @@ export const QuizScreen: React.FC = () => {
       setResult(res.data);
       setStep('results');
     } catch {
-      toast.error('Failed to submit quiz. Please try again.');
+      toast.error('Nộp bài thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -81,31 +81,31 @@ export const QuizScreen: React.FC = () => {
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6 text-primary">
             <CheckSquare className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">AI Knowledge Check</h2>
-          <p className="text-gray-400 text-sm mb-6">Generate a quiz on any topic using AI.</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Kiểm tra Kiến thức AI</h2>
+          <p className="text-gray-400 text-sm mb-6">Tạo bài trắc nghiệm về bất kỳ chủ đề nào bằng AI.</p>
 
           <div className="space-y-4 text-left mb-6">
             <div>
-              <label className="text-xs text-gray-500 font-medium">Topic</label>
+              <label className="text-xs text-gray-500 font-medium">Chủ đề</label>
               <input
                 className="input-field mt-1"
-                placeholder="e.g., React Hooks, Machine Learning, Python..."
+                placeholder="VD: React Hooks, Trí tuệ nhân tạo, Lịch sử..."
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 font-medium">Number of Questions</label>
+              <label className="text-xs text-gray-500 font-medium">Số lượng câu hỏi</label>
               <select className="input-field mt-1" value={numQuestions} onChange={(e) => setNumQuestions(Number(e.target.value))}>
-                <option value={5}>5 Questions (Quick)</option>
-                <option value={10}>10 Questions (Standard)</option>
-                <option value={20}>20 Questions (Deep Dive)</option>
+                <option value={5}>5 Câu (Nhanh)</option>
+                <option value={10}>10 Câu (Tiêu chuẩn)</option>
+                <option value={20}>20 Câu (Chuyên sâu)</option>
               </select>
             </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isGenerating}>
-            {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating with AI...</> : <><Sparkles className="w-4 h-4" /> Generate & Start Quiz</>}
+            {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tạo bằng AI...</> : <><Sparkles className="w-4 h-4" /> Tạo & Bắt đầu làm bài</>}
           </Button>
         </form>
       </div>
@@ -120,7 +120,7 @@ export const QuizScreen: React.FC = () => {
     return (
       <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-20 md:pb-0 pt-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-400">Question {currentQ + 1} of {total}</span>
+          <span className="text-sm font-medium text-gray-400">Câu hỏi {currentQ + 1} / {total}</span>
           <span className="text-sm font-medium text-accent flex items-center gap-1">
             <Clock className="w-4 h-4" />{quiz.topic}
           </span>
@@ -153,12 +153,12 @@ export const QuizScreen: React.FC = () => {
         </div>
 
         <div className="flex justify-between">
-          <Button variant="secondary" onClick={() => setCurrentQ(Math.max(0, currentQ - 1))} disabled={currentQ === 0}>Previous</Button>
+          <Button variant="secondary" onClick={() => setCurrentQ(Math.max(0, currentQ - 1))} disabled={currentQ === 0}>Quay lại</Button>
           {currentQ < total - 1 ? (
-            <Button onClick={() => setCurrentQ(currentQ + 1)}>Next Question</Button>
+            <Button onClick={() => setCurrentQ(currentQ + 1)}>Câu tiếp theo</Button>
           ) : (
             <Button onClick={handleSubmit} disabled={!allAnswered || isSubmitting}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Quiz'}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Nộp bài'}
             </Button>
           )}
         </div>
@@ -174,22 +174,22 @@ export const QuizScreen: React.FC = () => {
           <div className="w-24 h-24 rounded-full bg-surface border-[8px] border-green-500/20 flex items-center justify-center mx-auto mb-6">
             <span className="text-3xl font-bold text-white">{Math.round(result.score)}%</span>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Quiz Completed!</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Đã hoàn thành!</h2>
           <p className="text-gray-400 text-sm mb-6">
-            You scored {result.correct_answers} out of {quiz.total_questions} correctly.
+            Bạn đã trả lời đúng {result.correct_answers} trên tổng số {quiz.total_questions} câu.
           </p>
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-surface p-4 rounded-xl text-center">
               <div className="text-green-400 text-xl font-bold mb-1">{result.correct_answers}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Correct</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wider">Đúng</div>
             </div>
             <div className="bg-surface p-4 rounded-xl text-center">
               <div className="text-red-400 text-xl font-bold mb-1">{quiz.total_questions - result.correct_answers}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider">Incorrect</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wider">Sai</div>
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <Button variant="secondary" className="w-full" onClick={() => setStep('setup')}>Take Another Quiz</Button>
+            <Button variant="secondary" className="w-full" onClick={() => setStep('setup')}>Làm bài khác</Button>
           </div>
         </div>
       </div>

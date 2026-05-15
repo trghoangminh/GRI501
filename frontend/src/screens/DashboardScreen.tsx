@@ -60,15 +60,15 @@ export const DashboardScreen: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            Good morning, {user?.full_name?.split(' ')[0] || 'there'} <span className="animate-bounce">👋</span>
+            Chào buổi sáng, {user?.full_name?.split(' ')[0] || 'bạn'} <span className="animate-bounce">👋</span>
           </h1>
           <p className="text-gray-400 mt-1">
-            {streak.current_streak > 0 ? `You're on a ${streak.current_streak}-day streak! Keep it up.` : "Start studying today to build your streak!"}
+            {streak.current_streak > 0 ? `Bạn đang duy trì chuỗi học tập ${streak.current_streak} ngày! Tiếp tục phát huy nhé.` : "Bắt đầu học hôm nay để xây dựng chuỗi của bạn!"}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => navigate('/chat')}><MessageSquare className="w-4 h-4"/> Chat with AI</Button>
-          <Button variant="secondary" onClick={() => navigate('/library')}><Upload className="w-4 h-4"/> Upload</Button>
+          <Button onClick={() => navigate('/chat')}><MessageSquare className="w-4 h-4"/> Chat với AI</Button>
+          <Button variant="secondary" onClick={() => navigate('/library')}><Upload className="w-4 h-4"/> Tải Lên</Button>
         </div>
       </div>
 
@@ -96,49 +96,49 @@ export const DashboardScreen: React.FC = () => {
                 </div>
               </div>
               <div className="flex-grow">
-                <h3 className="text-xl font-semibold text-white mb-2">{roadmap?.title || 'No Roadmap Yet'}</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">{roadmap?.title || 'Chưa có Lộ trình'}</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                  {roadmap ? `${completedCount} of ${milestones.length} milestones completed.` : 'Generate a roadmap to get started.'}
+                  {roadmap ? `Đã hoàn thành ${completedCount} trong tổng số ${milestones.length} cột mốc.` : 'Hãy tạo một lộ trình để bắt đầu.'}
                 </p>
-                <Button variant="secondary" className="text-sm w-full md:w-auto" onClick={() => navigate('/roadmap')}>View Roadmap</Button>
+                <Button variant="secondary" className="text-sm w-full md:w-auto" onClick={() => navigate('/roadmap')}>Xem Lộ Trình</Button>
               </div>
             </div>
 
             {/* Today's Focus Tasks */}
             <div className="glass-card p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-white">Today's Focus</h3>
-                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-medium">{todayTasks.length} Active</span>
+                <h3 className="text-lg font-semibold text-white">Mục tiêu hôm nay</h3>
+                <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-medium">{todayTasks.length} Đang làm</span>
               </div>
               <div className="space-y-3">
                 {todayTasks.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-4">No active milestones. Start one from your roadmap!</p>
+                  <p className="text-gray-400 text-sm text-center py-4">Không có cột mốc nào đang hoạt động. Hãy bắt đầu một cái từ lộ trình của bạn!</p>
                 ) : todayTasks.map((task: any) => (
                   <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl bg-surface hover:bg-surfaceHover border border-transparent hover:border-border transition-colors group cursor-pointer">
                     <Circle className="w-5 h-5 text-primary" />
                     <span className="flex-grow text-sm text-gray-200">{task.title}</span>
-                    <span className="text-xs text-gray-500">{task.estimated_days}d</span>
+                    <span className="text-xs text-gray-500">{task.estimated_days} ngày</span>
                   </div>
                 ))}
               </div>
-              <Button className="w-full mt-4" onClick={() => navigate('/quizzes')}><Play className="w-4 h-4"/> Take Daily Quiz</Button>
+              <Button className="w-full mt-4" onClick={() => navigate('/quizzes')}><Play className="w-4 h-4"/> Bắt đầu bài tập hàng ngày</Button>
             </div>
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
             <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">This Week</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Tuần này</h3>
               <div className="space-y-2">
                 {weeklyLogs.length === 0 ? (
-                  <p className="text-sm text-gray-400">No study logs this week yet.</p>
+                  <p className="text-sm text-gray-400">Chưa có dữ liệu học tập trong tuần này.</p>
                 ) : weeklyLogs.slice(-4).map((log: any, i: number) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">{new Date(log.date).toLocaleDateString('en', { weekday: 'short' })}</span>
+                    <span className="text-sm text-gray-300">{new Date(log.date).toLocaleDateString('vi-VN', { weekday: 'short' })}</span>
                     <div className="flex-1 mx-3 h-2 bg-surface rounded-full overflow-hidden">
                       <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, (log.hours_studied / 8) * 100)}%` }} />
                     </div>
-                    <span className="text-xs text-gray-500">{log.hours_studied}h</span>
+                    <span className="text-xs text-gray-500">{log.hours_studied} giờ</span>
                   </div>
                 ))}
               </div>
@@ -147,15 +147,15 @@ export const DashboardScreen: React.FC = () => {
             <div className="glass-card p-6 bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-5 h-5 text-accent" />
-                <h3 className="text-sm font-semibold text-white">AI Insight</h3>
+                <h3 className="text-sm font-semibold text-white">Gợi ý từ AI</h3>
               </div>
               {insights ? (
                 <p className="text-sm text-gray-300 leading-relaxed">{insights}</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-400">Get personalized insights based on your study data.</p>
+                  <p className="text-sm text-gray-400">Nhận thông tin chi tiết được cá nhân hóa dựa trên dữ liệu học tập của bạn.</p>
                   <Button variant="secondary" className="text-xs w-full" onClick={fetchInsights} disabled={isLoadingInsights}>
-                    {isLoadingInsights ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Generate Insights'}
+                    {isLoadingInsights ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Tạo Gợi Ý'}
                   </Button>
                 </div>
               )}

@@ -25,9 +25,9 @@ export const SettingsScreen: React.FC = () => {
         hours_per_week: hoursPerWeek,
       });
       updateUser(res.data);
-      toast.success('Profile updated!');
+      toast.success('Đã cập nhật hồ sơ!');
     } catch {
-      toast.error('Failed to save changes.');
+      toast.error('Lưu thay đổi thất bại.');
     } finally {
       setIsSaving(false);
     }
@@ -42,9 +42,9 @@ export const SettingsScreen: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       updateUser(res.data);
-      toast.success('Avatar updated!');
+      toast.success('Đã cập nhật ảnh đại diện!');
     } catch {
-      toast.error('Failed to upload avatar.');
+      toast.error('Tải ảnh đại diện thất bại.');
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -56,7 +56,7 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-20 md:pb-0">
-      <h1 className="text-2xl font-bold text-white">Settings</h1>
+      <h1 className="text-2xl font-bold text-white">Cài đặt</h1>
       
       <form onSubmit={handleSave} className="glass-card p-6 space-y-8">
         {/* Profile Section */}
@@ -87,7 +87,7 @@ export const SettingsScreen: React.FC = () => {
           <div className="flex-1 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-1 block">Full Name</label>
+                <label className="text-xs font-medium text-gray-400 mb-1 block">Họ và tên</label>
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div>
@@ -95,15 +95,15 @@ export const SettingsScreen: React.FC = () => {
                 <Input value={user?.email || ''} disabled className="opacity-60" />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs font-medium text-gray-400 mb-1 block">Learning Goal</label>
+                <label className="text-xs font-medium text-gray-400 mb-1 block">Mục tiêu học tập</label>
                 <Input
                   value={learningGoal}
                   onChange={(e) => setLearningGoal(e.target.value)}
-                  placeholder="What do you want to learn?"
+                  placeholder="Bạn muốn học về lĩnh vực gì?"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-400 mb-1 block">Hours per Week</label>
+                <label className="text-xs font-medium text-gray-400 mb-1 block">Giờ học mỗi tuần</label>
                 <Input
                   type="number"
                   value={hoursPerWeek}
@@ -114,20 +114,20 @@ export const SettingsScreen: React.FC = () => {
               </div>
             </div>
             <Button type="submit" variant="secondary" className="text-sm" disabled={isSaving}>
-              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
+              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : 'Lưu Thay Đổi'}
             </Button>
           </div>
         </div>
 
         {/* Preferences */}
         <div className="space-y-4 border-b border-border pb-8">
-          <h3 className="text-lg font-medium text-white mb-4">Preferences</h3>
+          <h3 className="text-lg font-medium text-white mb-4">Tùy chọn</h3>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-gray-400"><Moon className="w-5 h-5" /></div>
               <div>
-                <p className="text-sm font-medium text-gray-200">Dark Mode</p>
-                <p className="text-xs text-gray-500">Always enabled for best experience</p>
+                <p className="text-sm font-medium text-gray-200">Giao diện tối</p>
+                <p className="text-xs text-gray-500">Luôn bật để có trải nghiệm tốt nhất</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -139,8 +139,8 @@ export const SettingsScreen: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-gray-400"><Bell className="w-5 h-5" /></div>
               <div>
-                <p className="text-sm font-medium text-gray-200">Study Reminders</p>
-                <p className="text-xs text-gray-500">Get notified for daily tasks</p>
+                <p className="text-sm font-medium text-gray-200">Nhắc nhở học tập</p>
+                <p className="text-xs text-gray-500">Nhận thông báo cho các nhiệm vụ hàng ngày</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -152,9 +152,9 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Danger Zone */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-white mb-4">Account</h3>
+          <h3 className="text-lg font-medium text-white mb-4">Tài khoản</h3>
           <button type="button" onClick={handleLogout} className="text-red-400 hover:text-red-300 flex items-center gap-2 text-sm font-medium transition-colors">
-            <LogOut className="w-4 h-4" /> Sign Out
+            <LogOut className="w-4 h-4" /> Đăng xuất
           </button>
         </div>
       </form>

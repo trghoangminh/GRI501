@@ -29,9 +29,9 @@ export const RoadmapScreen: React.FC = () => {
     try {
       const res = await apiClient.post('/api/roadmap/regenerate');
       setRoadmap(res.data);
-      toast.success('New roadmap generated!');
+      toast.success('Đã tạo lộ trình mới!');
     } catch {
-      toast.error('Failed to regenerate roadmap. Please try again.');
+      toast.error('Tạo lộ trình thất bại. Vui lòng thử lại.');
     } finally {
       setIsRegenerating(false);
     }
@@ -44,9 +44,9 @@ export const RoadmapScreen: React.FC = () => {
         ...prev,
         milestones: prev.milestones.map((m: any) => m.id === milestoneId ? res.data : m),
       }));
-      toast.success('Milestone updated!');
+      toast.success('Đã cập nhật cột mốc!');
     } catch {
-      toast.error('Failed to update milestone.');
+      toast.error('Cập nhật cột mốc thất bại.');
     }
   };
 
@@ -66,28 +66,28 @@ export const RoadmapScreen: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20 md:pb-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">{roadmap?.title || 'Study Roadmap'}</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">{roadmap?.title || 'Lộ trình học tập'}</h1>
           <div className="flex items-center gap-3">
             <div className="h-2 w-48 bg-surface rounded-full overflow-hidden">
               <div className="h-full bg-primary transition-all" style={{ width: `${completionPct}%` }}></div>
             </div>
-            <span className="text-sm text-gray-400">{completionPct}% Completed</span>
+            <span className="text-sm text-gray-400">Hoàn thành {completionPct}%</span>
           </div>
         </div>
         <Button variant="secondary" className="hidden sm:flex" onClick={handleRegenerate} disabled={isRegenerating}>
           {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Regenerate Plan
+          Tạo Lại Kế Hoạch
         </Button>
       </div>
 
       {milestones.length === 0 ? (
         <div className="glass-card p-10 text-center">
           <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">No Roadmap Yet</h3>
-          <p className="text-gray-400 mb-6">Generate your AI-powered roadmap to get started.</p>
+          <h3 className="text-xl font-bold text-white mb-2">Chưa có Lộ trình</h3>
+          <p className="text-gray-400 mb-6">Hãy tạo lộ trình được AI hỗ trợ để bắt đầu học.</p>
           <Button onClick={handleRegenerate} disabled={isRegenerating}>
             {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            Generate Roadmap
+            Tạo Lộ Trình
           </Button>
         </div>
       ) : (
@@ -118,13 +118,13 @@ export const RoadmapScreen: React.FC = () => {
                         item.status === 'completed' ? "bg-green-500/10 text-green-400" :
                         item.status === 'in_progress' ? "bg-accent/10 text-accent" : "bg-surface text-gray-400"
                       )}>
-                        {item.estimated_days}d
+                        {item.estimated_days} ngày
                       </span>
                       <button
                         onClick={() => handleMilestoneUpdate(item.id, statusCycle[item.status])}
                         className="text-xs px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                       >
-                        {item.status === 'not_started' ? 'Start' : item.status === 'in_progress' ? 'Complete' : 'Reset'}
+                        {item.status === 'not_started' ? 'Bắt đầu' : item.status === 'in_progress' ? 'Hoàn thành' : 'Đặt lại'}
                       </button>
                     </div>
                   </div>
@@ -133,7 +133,7 @@ export const RoadmapScreen: React.FC = () => {
                   {item.resources && item.resources.length > 0 && (
                     <div className="bg-background/50 rounded-lg p-3 border border-border">
                       <p className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-1">
-                        <BookOpen className="w-3 h-3 text-primary"/> AI Recommended Resources:
+                        <BookOpen className="w-3 h-3 text-primary"/> AI Gợi ý tài liệu:
                       </p>
                       <ul className="text-sm space-y-1">
                         {item.resources.map((r: any, i: number) => (

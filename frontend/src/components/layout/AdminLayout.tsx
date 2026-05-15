@@ -5,9 +5,9 @@ import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const ADMIN_NAV_ITEMS = [
-  { path: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { path: '/admin/users', label: 'User Management', icon: Users },
-  { path: '/admin/settings', label: 'System Settings', icon: SettingsIcon },
+  { path: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { path: '/admin/users', label: 'Quản lý Người dùng', icon: Users },
+  { path: '/admin/settings', label: 'Cài đặt Hệ thống', icon: SettingsIcon },
 ];
 
 interface AdminLayoutProps {
@@ -29,7 +29,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, isMobile }) 
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className="font-heading font-bold text-xl tracking-tight text-white">Admin Panel</span>
+            <span className="font-heading font-bold text-xl tracking-tight text-white">Trang Quản trị</span>
           </div>
           
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -65,7 +65,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, isMobile }) 
                 )}
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium text-white leading-tight">{user?.full_name || 'Admin'}</p>
-                  <p className="text-xs text-red-400 font-bold tracking-widest uppercase mt-0.5">Administrator</p>
+                  <p className="text-xs text-red-400 font-bold tracking-widest uppercase mt-0.5">Quản trị viên</p>
                 </div>
              </div>
              <button 
@@ -73,7 +73,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, isMobile }) 
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
              >
                 <LogOut className="w-4 h-4" />
-                Sign out
+                Đăng xuất
              </button>
           </div>
         </aside>
@@ -88,7 +88,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, isMobile }) 
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="font-heading font-bold text-lg text-white">Admin</span>
+              <span className="font-heading font-bold text-lg text-white">Quản trị</span>
             </div>
             <button onClick={logout} className="p-2 text-gray-400 hover:text-white">
                 <LogOut className="w-5 h-5" />

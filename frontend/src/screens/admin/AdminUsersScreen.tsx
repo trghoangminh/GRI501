@@ -27,7 +27,7 @@ export const AdminUsersScreen: React.FC = () => {
     try {
       const res = await apiClient.get('/api/admin/users');
       setUsers(res.data.data);
-    } catch { toast.error('Failed to load users'); }
+    } catch { toast.error('Lỗi khi tải danh sách người dùng'); }
     finally { setIsLoading(false); }
   };
 
@@ -46,9 +46,9 @@ export const AdminUsersScreen: React.FC = () => {
       const res = await apiClient.patch(`/api/admin/users/${userId}/toggle-active`);
       const newStatus = res.data.data.is_active;
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: newStatus } : u));
-      toast.success(newStatus ? 'User activated' : 'User deactivated');
+      toast.success(newStatus ? 'Đã kích hoạt người dùng' : 'Đã vô hiệu hóa người dùng');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Action failed');
+      toast.error(err?.response?.data?.detail || 'Thao tác thất bại');
     } finally { setLoadingId(null); }
   };
 
@@ -57,9 +57,9 @@ export const AdminUsersScreen: React.FC = () => {
     try {
       await apiClient.patch(`/api/admin/users/${userId}/role?role=${role}`);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-      toast.success(`Role updated to ${role}`);
+      toast.success(`Đã cập nhật quyền thành ${role === 'admin' ? 'Quản trị viên' : 'Người dùng'}`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Action failed');
+      toast.error(err?.response?.data?.detail || 'Thao tác thất bại');
     } finally { setLoadingId(null); }
   };
 
@@ -69,11 +69,23 @@ export const AdminUsersScreen: React.FC = () => {
     advanced: 'text-red-400 bg-red-400/10 border-red-400/20',
   };
 
+  const roleNames: Record<string, string> = {
+    all: 'Tất cả',
+    admin: 'Quản trị viên',
+    user: 'Người dùng',
+  };
+
+  const levelNames: Record<string, string> = {
+    beginner: 'Cơ bản',
+    intermediate: 'Trung bình',
+    advanced: 'Nâng cao',
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-heading font-bold text-white tracking-tight">User Management</h1>
-        <p className="text-gray-500 mt-1 text-sm">Manage roles, status, and access for all platform users</p>
+        <h1 className="text-3xl font-heading font-bold text-white tracking-tight">Quản lý Người dùng</h1>
+        <p className="text-gray-500 mt-1 text-sm">Quản lý quyền hạn, trạng thái, và quyền truy cập của tất cả người dùng</p>
       </div>
 
       <div className="glass-panel rounded-2xl p-4 border border-white/5 flex flex-col md:flex-row gap-3 items-center">
@@ -81,7 +93,7 @@ export const AdminUsersScreen: React.FC = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Tìm kiếm theo tên hoặc email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full bg-black/20 border border-white/5 text-white placeholder-gray-500 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-red-500/50 transition-colors"
@@ -90,31 +102,31 @@ export const AdminUsersScreen: React.FC = () => {
         <div className="flex gap-2">
           {(['all', 'admin', 'user'] as const).map(r => (
             <button key={r} onClick={() => setRoleFilter(r)}
-              className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all capitalize ${roleFilter === r ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}>
-              {r === 'all' ? 'All Roles' : r.charAt(0).toUpperCase() + r.slice(1)}
+              className={`px-3 py-2 text-xs font-medium rounded-xl border transition-all ${roleFilter === r ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'border-white/5 text-gray-400 hover:bg-white/5'}`}>
+              {roleNames[r]}
             </button>
           ))}
         </div>
-        <span className="text-xs text-gray-500"><span className="font-bold text-white">{filtered.length}</span> / {users.length} users</span>
+        <span className="text-xs text-gray-500"><span className="font-bold text-white">{filtered.length}</span> / {users.length} người dùng</span>
       </div>
 
       <div className="glass-panel rounded-2xl overflow-hidden border border-white/5">
         {isLoading ? (
           <div className="flex justify-center items-center py-20"><Loader2 className="w-6 h-6 text-red-500 animate-spin" /></div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-16 text-gray-500"><AlertCircle className="w-8 h-8" /><p>No users match your filter</p></div>
+          <div className="flex flex-col items-center gap-2 py-16 text-gray-500"><AlertCircle className="w-8 h-8" /><p>Không có người dùng nào phù hợp</p></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-gray-400">
               <thead className="text-xs uppercase bg-black/30 text-gray-500 border-b border-white/5">
                 <tr>
-                  <th className="px-5 py-4 font-medium">User</th>
-                  <th className="px-5 py-4 font-medium">Level</th>
-                  <th className="px-5 py-4 font-medium">Roadmaps</th>
-                  <th className="px-5 py-4 font-medium">Role</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Joined</th>
-                  <th className="px-5 py-4 font-medium text-right">Actions</th>
+                  <th className="px-5 py-4 font-medium">Người dùng</th>
+                  <th className="px-5 py-4 font-medium">Trình độ</th>
+                  <th className="px-5 py-4 font-medium">Lộ trình</th>
+                  <th className="px-5 py-4 font-medium">Quyền</th>
+                  <th className="px-5 py-4 font-medium">Trạng thái</th>
+                  <th className="px-5 py-4 font-medium">Ngày tham gia</th>
+                  <th className="px-5 py-4 font-medium text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +145,7 @@ export const AdminUsersScreen: React.FC = () => {
                     </td>
                     <td className="px-5 py-4">
                       {u.current_level
-                        ? <span className={`px-2 py-0.5 text-xs rounded-full border ${levelBadge[u.current_level] || 'text-gray-400 bg-white/5 border-white/10'}`}>{u.current_level}</span>
+                        ? <span className={`px-2 py-0.5 text-xs rounded-full border ${levelBadge[u.current_level] || 'text-gray-400 bg-white/5 border-white/10'}`}>{levelNames[u.current_level] || u.current_level}</span>
                         : <span className="text-gray-600 text-xs">—</span>}
                     </td>
                     <td className="px-5 py-4">
@@ -150,8 +162,8 @@ export const AdminUsersScreen: React.FC = () => {
                           onChange={e => updateRole(u.id, e.target.value)}
                           className={`appearance-none pl-3 pr-7 py-1.5 text-xs rounded-lg border cursor-pointer bg-black/30 focus:outline-none ${u.role === 'admin' ? 'border-red-500/30 text-red-400' : 'border-blue-500/20 text-blue-400'}`}
                         >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
+                          <option value="user">Người dùng</option>
+                          <option value="admin">Quản trị viên</option>
                         </select>
                         {u.role === 'admin'
                           ? <Shield className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-400 pointer-events-none" />
@@ -160,8 +172,8 @@ export const AdminUsersScreen: React.FC = () => {
                     </td>
                     <td className="px-5 py-4">
                       {u.is_active
-                        ? <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Active</span>
-                        : <span className="inline-flex items-center gap-1.5 text-xs text-gray-500"><span className="w-1.5 h-1.5 rounded-full bg-gray-500" />Inactive</span>}
+                        ? <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Hoạt động</span>
+                        : <span className="inline-flex items-center gap-1.5 text-xs text-gray-500"><span className="w-1.5 h-1.5 rounded-full bg-gray-500" />Đã khóa</span>}
                     </td>
                     <td className="px-5 py-4 text-xs text-gray-500">{new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
                     <td className="px-5 py-4 text-right">
@@ -173,8 +185,8 @@ export const AdminUsersScreen: React.FC = () => {
                         {loadingId === u.id
                           ? <Loader2 className="w-3 h-3 animate-spin" />
                           : u.is_active
-                            ? <><UserX className="w-3 h-3" />Deactivate</>
-                            : <><UserCheck className="w-3 h-3" />Activate</>}
+                            ? <><UserX className="w-3 h-3" />Khóa tài khoản</>
+                            : <><UserCheck className="w-3 h-3" />Mở khóa</>}
                       </button>
                     </td>
                   </tr>

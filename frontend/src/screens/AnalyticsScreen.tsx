@@ -37,12 +37,12 @@ export const AnalyticsScreen: React.FC = () => {
 
   // Prepare chart data from API
   const weeklyHoursData = analytics?.weekly_hours?.map((w: any) => ({
-    name: new Date(w.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    name: new Date(w.date).toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' }),
     hours: parseFloat(w.hours.toFixed(1)),
   })) || [];
 
   const quizScoreData = analytics?.quiz_performance?.map((q: any) => ({
-    name: new Date(q.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+    name: new Date(q.date).toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' }),
     score: parseFloat(q.avg_score.toFixed(1)),
   })) || [];
 
@@ -52,14 +52,14 @@ export const AnalyticsScreen: React.FC = () => {
   })) || [];
 
   const statCards = [
-    { label: 'Total Study Hours', value: analytics ? `${analytics.total_study_hours.toFixed(1)}h` : '—' },
-    { label: 'Documents', value: analytics?.total_documents ?? '—' },
-    { label: 'Quizzes Taken', value: analytics?.total_quizzes_taken ?? '—' },
+    { label: 'Tổng giờ học', value: analytics ? `${analytics.total_study_hours.toFixed(1)}h` : '—' },
+    { label: 'Tài liệu đã tải', value: analytics?.total_documents ?? '—' },
+    { label: 'Số bài kiểm tra', value: analytics?.total_quizzes_taken ?? '—' },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in pb-20 md:pb-0">
-      <h1 className="text-2xl font-bold text-white">Progress & Analytics</h1>
+      <h1 className="text-2xl font-bold text-white">Tiến độ & Thống kê</h1>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4">
@@ -77,10 +77,10 @@ export const AnalyticsScreen: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Hours Chart */}
           <div className="glass-card p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-6">Study Hours (Weekly)</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-6">Giờ học (Theo tuần)</h3>
             <div className="h-64">
               {weeklyHoursData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500 text-sm">No study data yet</div>
+                <div className="h-full flex items-center justify-center text-gray-500 text-sm">Chưa có dữ liệu học tập</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={weeklyHoursData}>
@@ -97,10 +97,10 @@ export const AnalyticsScreen: React.FC = () => {
 
           {/* Quiz Score Trend */}
           <div className="glass-card p-6">
-            <h3 className="text-sm font-medium text-gray-400 mb-6">Quiz Score Trend</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-6">Điểm kiểm tra</h3>
             <div className="h-64">
               {quizScoreData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-500 text-sm">No quiz data yet</div>
+                <div className="h-full flex items-center justify-center text-gray-500 text-sm">Chưa có điểm kiểm tra</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={quizScoreData}>
@@ -117,9 +117,9 @@ export const AnalyticsScreen: React.FC = () => {
 
           {/* Topics Distribution */}
           <div className="glass-card p-6 flex flex-col justify-center">
-            <h3 className="text-sm font-medium text-gray-400 mb-4">Topics Distribution</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-4">Phân bố chủ đề</h3>
             {topicsData.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-gray-500 text-sm">Log study sessions with topics to see this chart</div>
+              <div className="h-48 flex items-center justify-center text-gray-500 text-sm">Hãy học theo các chủ đề để hiển thị biểu đồ này</div>
             ) : (
               <div className="h-48 flex items-center">
                 <ResponsiveContainer width="50%" height="100%">
@@ -146,16 +146,16 @@ export const AnalyticsScreen: React.FC = () => {
           <div className="glass-card p-6 bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-accent" />
-              <h3 className="text-sm font-semibold text-white">AI Insights</h3>
+              <h3 className="text-sm font-semibold text-white">Gợi ý từ AI</h3>
             </div>
             {insights ? (
               <p className="text-sm text-gray-300 leading-relaxed">{insights}</p>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-gray-400">Generate personalized insights based on your last 7 days of activity.</p>
+                <p className="text-sm text-gray-400">Tạo gợi ý được cá nhân hóa dựa trên hoạt động 7 ngày qua của bạn.</p>
                 <Button variant="secondary" className="text-sm w-full" onClick={fetchInsights} disabled={isLoadingInsights}>
                   {isLoadingInsights ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {isLoadingInsights ? 'Analyzing...' : 'Generate AI Insights'}
+                  {isLoadingInsights ? 'Đang phân tích...' : 'Tạo Gợi Ý AI'}
                 </Button>
               </div>
             )}

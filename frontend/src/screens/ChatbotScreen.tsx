@@ -21,7 +21,7 @@ export const ChatbotScreen: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! I am your AI study partner. I have access to your uploaded documents. What would you like to learn today?' }
+    { role: 'assistant', content: 'Xin chào! Tôi là trợ lý học tập AI của bạn. Tôi có quyền truy cập vào các tài liệu bạn đã tải lên. Hôm nay bạn muốn học về gì?' }
   ]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -37,13 +37,13 @@ export const ChatbotScreen: React.FC = () => {
 
   const createNewSession = async () => {
     try {
-      const res = await apiClient.post('/api/chat/sessions', { title: 'New Chat' });
+      const res = await apiClient.post('/api/chat/sessions', { title: 'Đoạn chat mới' });
       const newSession = res.data;
       setSessions((prev) => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
-      setMessages([{ role: 'assistant', content: 'New session started! Ask me anything about your study materials.' }]);
+      setMessages([{ role: 'assistant', content: 'Đã bắt đầu phiên mới! Hãy hỏi tôi bất cứ điều gì về tài liệu của bạn.' }]);
     } catch {
-      toast.error('Failed to create new session.');
+      toast.error('Tạo phiên chat mới thất bại.');
     }
   };
 
@@ -52,9 +52,9 @@ export const ChatbotScreen: React.FC = () => {
     try {
       const res = await apiClient.get(`/api/chat/sessions/${sessionId}/messages`);
       const dbMessages: Message[] = res.data.map((m: any) => ({ role: m.role, content: m.content, has_rag_context: m.has_rag_context }));
-      setMessages(dbMessages.length > 0 ? dbMessages : [{ role: 'assistant', content: 'Continue your conversation or ask a new question.' }]);
+      setMessages(dbMessages.length > 0 ? dbMessages : [{ role: 'assistant', content: 'Hãy tiếp tục cuộc trò chuyện hoặc đặt một câu hỏi mới.' }]);
     } catch {
-      toast.error('Failed to load session messages.');
+      toast.error('Tải nội dung chat thất bại.');
     }
   };
 
@@ -65,10 +65,10 @@ export const ChatbotScreen: React.FC = () => {
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeSessionId === sessionId) {
         setActiveSessionId(null);
-        setMessages([{ role: 'assistant', content: 'Session deleted. Create a new chat or select another session.' }]);
+        setMessages([{ role: 'assistant', content: 'Đã xoá phiên chat. Vui lòng tạo một phiên chat mới hoặc chọn phiên khác.' }]);
       }
     } catch {
-      toast.error('Failed to delete session.');
+      toast.error('Xoá phiên chat thất bại.');
     }
   };
 
@@ -85,7 +85,7 @@ export const ChatbotScreen: React.FC = () => {
         setActiveSessionId(sessionId);
         setSessions((prev) => [res.data, ...prev]);
       } catch {
-        toast.error('Failed to create session. Is the backend running?');
+        toast.error('Tạo phiên chat thất bại. Backend có đang chạy không?');
         return;
       }
     }
@@ -151,7 +151,7 @@ export const ChatbotScreen: React.FC = () => {
         }
       }
     } catch {
-      toast.error('Failed to get response. Is the backend running?');
+      toast.error('Không nhận được phản hồi. Backend có đang chạy không?');
       setMessages((prev) => prev.slice(0, -1)); // remove empty streaming placeholder
     } finally {
       setIsStreaming(false);
@@ -164,13 +164,13 @@ export const ChatbotScreen: React.FC = () => {
       <div className="hidden md:flex w-64 bg-surface border-r border-border flex-col">
         <div className="p-4 border-b border-border">
           <Button className="w-full justify-start shadow-none" onClick={createNewSession}>
-            <Plus className="w-4 h-4"/> New Chat
+            <Plus className="w-4 h-4"/> Chat Mới
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-2 mt-2">Recent</div>
+          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 ml-2 mt-2">Gần đây</div>
           {sessions.length === 0 ? (
-            <p className="text-xs text-gray-500 px-3">No sessions yet.</p>
+            <p className="text-xs text-gray-500 px-3">Chưa có phiên chat nào.</p>
           ) : sessions.map((s) => (
             <button
               key={s.id}
@@ -195,10 +195,10 @@ export const ChatbotScreen: React.FC = () => {
       <div className="flex-1 flex flex-col relative bg-transparent">
         <div className="p-4 border-b border-border bg-surface backdrop-blur-md flex items-center justify-between sticky top-0 z-10">
           <h2 className="text-lg font-semibold text-white">
-            {activeSessionId ? sessions.find(s => s.id === activeSessionId)?.title || 'Chat' : 'AI Study Chat'}
+            {activeSessionId ? sessions.find(s => s.id === activeSessionId)?.title || 'Chat' : 'Chat cùng AI'}
           </h2>
           <span className="text-xs bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-            <Sparkles className="w-3 h-3"/> RAG Enabled
+            <Sparkles className="w-3 h-3"/> Đã bật RAG
           </span>
         </div>
         
@@ -224,7 +224,7 @@ export const ChatbotScreen: React.FC = () => {
                 {msg.has_rag_context && (
                   <div className="mt-3 flex gap-2">
                     <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold bg-background px-2 py-1 rounded-md border border-border/50">
-                      📚 Based on your documents
+                      📚 Dựa trên tài liệu của bạn
                     </span>
                   </div>
                 )}
@@ -240,7 +240,7 @@ export const ChatbotScreen: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Ask anything about your study materials..."
+              placeholder="Hỏi bất kỳ điều gì về tài liệu của bạn..."
               className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none outline-none text-gray-100 py-2 px-2 text-sm"
               rows={1}
               disabled={isStreaming}
@@ -251,7 +251,7 @@ export const ChatbotScreen: React.FC = () => {
               </button>
             </div>
           </form>
-          <div className="text-center mt-3 text-xs text-gray-500">AI can make mistakes. Verify important information.</div>
+          <div className="text-center mt-3 text-xs text-gray-500">AI có thể mắc lỗi. Vui lòng xác minh lại các thông tin quan trọng.</div>
         </div>
       </div>
     </div>

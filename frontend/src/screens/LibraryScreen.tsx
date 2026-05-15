@@ -48,9 +48,9 @@ export const LibraryScreen: React.FC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setDocs((prev) => [res.data, ...prev]);
-      toast.success(`"${file.name}" uploaded! AI is processing it in the background.`);
+      toast.success(`Đã tải lên "${file.name}"! AI đang xử lý ở chế độ nền.`);
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Upload failed. Check file type and size.');
+      toast.error(err?.response?.data?.detail || 'Tải lên thất bại. Hãy kiểm tra định dạng và kích thước.');
     } finally {
       setIsUploading(false);
     }
@@ -67,9 +67,9 @@ export const LibraryScreen: React.FC = () => {
       await apiClient.delete(`/api/documents/${docId}`);
       setDocs((prev) => prev.filter((d) => d.id !== docId));
       if (selectedDoc?.id === docId) setSelectedDoc(null);
-      toast.success('Document deleted.');
+      toast.success('Đã xóa tài liệu.');
     } catch {
-      toast.error('Failed to delete document.');
+      toast.error('Xóa tài liệu thất bại.');
     }
   };
 
@@ -79,9 +79,9 @@ export const LibraryScreen: React.FC = () => {
       const res = await apiClient.post(`/api/documents/${doc.id}/summarize`);
       setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, summary: res.data.summary } : d));
       setSelectedDoc((prev) => prev ? { ...prev, summary: res.data.summary } : null);
-      toast.success('Summary generated!');
+      toast.success('Đã tạo xong bản tóm tắt!');
     } catch {
-      toast.error('Failed to generate summary.');
+      toast.error('Tạo bản tóm tắt thất bại.');
     } finally {
       setIsSummarizing(false);
     }
@@ -95,13 +95,13 @@ export const LibraryScreen: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in pb-20 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-2xl font-bold text-white">Resource Library</h1>
+        <h1 className="text-2xl font-bold text-white">Thư viện tài liệu</h1>
         <div className="flex w-full md:w-auto gap-2">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search documents..."
+              placeholder="Tìm kiếm tài liệu..."
               className="input-field pl-9 text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -110,7 +110,7 @@ export const LibraryScreen: React.FC = () => {
           <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.docx,.txt,.pptx" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
           <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
             {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Upload
+            Tải Lên
           </Button>
         </div>
       </div>
@@ -125,16 +125,16 @@ export const LibraryScreen: React.FC = () => {
         <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
           {isUploading ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : <Upload className="w-8 h-8 text-primary" />}
         </div>
-        <h3 className="text-lg font-medium text-white mb-1">Upload Study Materials</h3>
-        <p className="text-sm text-gray-400 mb-4">Drag & drop PDFs, DOCX, or TXT files here, or click to browse</p>
-        <span className="text-xs text-gray-500 border border-border px-3 py-1 rounded-full">Max 10MB • AI auto-processes and indexes for chat</span>
+        <h3 className="text-lg font-medium text-white mb-1">Tải lên tài liệu học tập</h3>
+        <p className="text-sm text-gray-400 mb-4">Kéo & thả file PDF, DOCX, hoặc TXT vào đây, hoặc click để chọn file</p>
+        <span className="text-xs text-gray-500 border border-border px-3 py-1 rounded-full">Tối đa 10MB • AI sẽ tự động xử lý để chat</span>
       </div>
 
       {/* Documents Grid */}
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       ) : docs.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">No documents found. Upload your first study material!</div>
+        <div className="text-center py-12 text-gray-400">Không tìm thấy tài liệu. Hãy tải lên tài liệu học tập đầu tiên của bạn!</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {docs.map((doc) => (
@@ -159,16 +159,16 @@ export const LibraryScreen: React.FC = () => {
                 </button>
               </div>
               <h4 className="text-sm font-medium text-white mb-1 truncate" title={doc.original_name}>{doc.original_name}</h4>
-              <p className="text-xs text-gray-500 mb-auto">{new Date(doc.created_at).toLocaleDateString()} • {formatSize(doc.file_size)}</p>
+              <p className="text-xs text-gray-500 mb-auto">{new Date(doc.created_at).toLocaleDateString('vi-VN')} • {formatSize(doc.file_size)}</p>
               <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                 <span className={cn(
                   "text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded flex items-center gap-1",
                   doc.status === 'ready' ? "bg-green-500/10 text-green-400" : doc.status === 'failed' ? "bg-red-500/10 text-red-400" : "bg-accent/10 text-accent animate-pulse"
                 )}>
                   {doc.status === 'ready' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                  {doc.status}
+                  {doc.status === 'ready' ? 'Sẵn sàng' : doc.status === 'failed' ? 'Lỗi' : 'Đang xử lý'}
                 </span>
-                <span className="text-xs text-gray-500">{doc.chunk_count} chunks</span>
+                <span className="text-xs text-gray-500">{doc.chunk_count} phần</span>
               </div>
             </div>
           ))}
@@ -186,7 +186,7 @@ export const LibraryScreen: React.FC = () => {
             <div className="flex gap-3 mb-4">
               <Button variant="secondary" className="text-sm" onClick={() => handleSummarize(selectedDoc)} disabled={isSummarizing}>
                 {isSummarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {selectedDoc.summary ? 'Re-summarize' : 'AI Summarize'}
+                {selectedDoc.summary ? 'Tóm tắt lại' : 'Tóm tắt bằng AI'}
               </Button>
             </div>
             {selectedDoc.summary && (

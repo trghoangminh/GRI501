@@ -5,12 +5,12 @@ import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/roadmap', label: 'Roadmap', icon: Map },
-  { path: '/chat', label: 'AI Chat', icon: MessageSquare },
-  { path: '/library', label: 'Library', icon: Folder },
-  { path: '/quizzes', label: 'Quizzes', icon: HelpCircle },
-  { path: '/analytics', label: 'Analytics', icon: BarChart2 },
+  { path: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { path: '/roadmap', label: 'Lộ trình', icon: Map },
+  { path: '/chat', label: 'Chat AI', icon: MessageSquare },
+  { path: '/library', label: 'Thư viện', icon: Folder },
+  { path: '/quizzes', label: 'Trắc nghiệm', icon: HelpCircle },
+  { path: '/analytics', label: 'Thống kê', icon: BarChart2 },
 ];
 
 interface MainLayoutProps {
@@ -66,15 +66,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, isMobile }) =>
               )}
              >
                 {avatarUrl ? (
-                  <img src={`http://localhost:8000${avatarUrl}`} alt="User" className="w-8 h-8 rounded-full border border-border object-cover" />
+                  <img src={`http://localhost:8000${avatarUrl}`} alt="Người dùng" className="w-8 h-8 rounded-full border border-border object-cover" />
                 ) : (
                   <div className="w-8 h-8 rounded-full border border-border bg-surface flex items-center justify-center">
                     <User className="w-4 h-4 text-gray-400" />
                   </div>
                 )}
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-white leading-tight">{user?.full_name || 'User'}</p>
-                  <p className="text-xs text-gray-500">Student</p>
+                  <p className="text-sm font-medium text-white leading-tight">{user?.full_name || 'Người dùng'}</p>
+                  <p className="text-xs text-gray-500">Học viên</p>
                 </div>
                 <Settings className="w-4 h-4 text-gray-400" />
              </Link>
@@ -95,7 +95,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, isMobile }) =>
             </div>
             <Link to="/settings">
               {avatarUrl ? (
-                <img src={`http://localhost:8000${avatarUrl}`} alt="User" className="w-8 h-8 rounded-full border border-border object-cover" />
+                <img src={`http://localhost:8000${avatarUrl}`} alt="Người dùng" className="w-8 h-8 rounded-full border border-border object-cover" />
               ) : (
                 <div className="w-8 h-8 rounded-full border border-border bg-surface flex items-center justify-center">
                   <User className="w-4 h-4 text-gray-400" />
