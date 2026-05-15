@@ -1,0 +1,77 @@
+# ============================================================
+# Backend .gitignore — Python / FastAPI
+# ============================================================
+
+# ---- Môi trường & Secrets (QUAN TRỌNG - không commit!) ----
+.env
+*.env
+!.env.example
+
+# ---- Python Virtual Environment ----
+venv/
+.venv/
+env/
+ENV/
+.Python
+pyvenv.cfg
+
+# ---- Python Cache ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ---- Build / Distribution ----
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+
+# ---- Testing ----
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# ---- Type checking ----
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ---- Jupyter ----
+.ipynb_checkpoints
+*.ipynb
+
+# ---- File uploads (dữ liệu user - không commit lên Git) ----
+uploads/
+!uploads/.gitkeep
+
+# ---- Qdrant vector store (local data - không commit) ----
+qdrant_storage/
+!qdrant_storage/.gitkeep
+
+# ---- Alembic (chỉ giữ scripts, không giữ migration cache) ----
+# alembic/versions/*.py  # bỏ comment nếu không muốn commit migrations
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- macOS ----
+.DS_Store
+
+# ---- Database local (nếu có dùng SQLite để test) ----
+*.db
+*.sqlite3
+
+# ---- Docker (nếu dùng) ----
+# .dockerignore   # giữ lại file này
