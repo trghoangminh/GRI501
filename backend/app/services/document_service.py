@@ -28,16 +28,34 @@ def generate_document_summary(db: Session, document: Document) -> str:
         raise HTTPException(status_code=404, detail="File not found on server")
         
     text = ""
+    ext = os.path.splitext(document.file_path)[1].lower()
     try:
-        from pypdf import PdfReader
-        reader = PdfReader(document.file_path)
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+        if ext == ".pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(document.file_path)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        elif ext == ".docx":
+            from docx import Document as DocxDocument
+            doc = DocxDocument(document.file_path)
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    text += para.text + "\n"
+        elif ext == ".pptx":
+            from pptx import Presentation
+            prs = Presentation(document.file_path)
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text.strip():
+                        text += shape.text + "\n"
+        else:
+            with open(document.file_path, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
     except Exception:
         try:
-            with open(document.file_path, "r", encoding="utf-8") as f:
+            with open(document.file_path, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
         except:
             raise HTTPException(status_code=500, detail="Failed to read document content for summarization")

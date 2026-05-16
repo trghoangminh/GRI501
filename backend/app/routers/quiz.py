@@ -57,6 +57,30 @@ def submit_attempt(quiz_id: UUID, req: QuizAttemptReq, db: Session = Depends(get
         time_taken_seconds=req.time_taken_seconds
     )
     db.add(attempt)
+
+    # Auto-log study time from quiz
+    from app.models.progress import StudyLog
+    from datetime import date
+    today = date.today()
+    hours_spent = round(req.time_taken_seconds / 3600, 2)
+    existing_log = db.query(StudyLog).filter(
+        StudyLog.user_id == current_user.id,
+        StudyLog.date == today
+    ).first()
+    if existing_log:
+        existing_log.hours_studied += hours_spent
+        topics = existing_log.topics or []
+        if quiz.topic and quiz.topic not in topics:
+            existing_log.topics = topics + [quiz.topic]
+    else:
+        db.add(StudyLog(
+            user_id=current_user.id,
+            date=today,
+            hours_studied=hours_spent,
+            topics=[quiz.topic] if quiz.topic else [],
+            notes=f"Tự động ghi từ bài quiz: {quiz.title}"
+        ))
+
     db.commit()
     
     return {

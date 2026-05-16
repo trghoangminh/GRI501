@@ -54,13 +54,20 @@ export const DashboardScreen: React.FC = () => {
   // Today's milestones (in_progress)
   const todayTasks = milestones.filter((m: any) => m.status === 'in_progress').slice(0, 3);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Chào buổi sáng';
+    if (hour < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-20 md:pb-0">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            Chào buổi sáng, {user?.full_name?.split(' ')[0] || 'bạn'} <span className="animate-bounce">👋</span>
+            {getGreeting()}, {user?.full_name?.split(' ')[0] || 'bạn'} <span className="animate-bounce">👋</span>
           </h1>
           <p className="text-gray-400 mt-1">
             {streak.current_streak > 0 ? `Bạn đang duy trì chuỗi học tập ${streak.current_streak} ngày! Tiếp tục phát huy nhé.` : "Bắt đầu học hôm nay để xây dựng chuỗi của bạn!"}

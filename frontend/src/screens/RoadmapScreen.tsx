@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, BookOpen, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, BookOpen, ChevronRight, Loader2, RefreshCw, Archive, RotateCcw } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
@@ -9,6 +9,8 @@ export const RoadmapScreen: React.FC = () => {
   const [roadmap, setRoadmap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [archivedRoadmaps, setArchivedRoadmaps] = useState<any[]>([]);
+  const [isRestoring, setIsRestoring] = useState<string | null>(null);
   
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,7 +32,25 @@ export const RoadmapScreen: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchRoadmap(); }, []);
+  useEffect(() => { 
+    fetchRoadmap(); 
+    apiClient.get('/api/roadmap/archived').then(res => setArchivedRoadmaps(res.data)).catch(() => {});
+  }, []);
+
+  const handleRestore = async (roadmapId: string) => {
+    setIsRestoring(roadmapId);
+    try {
+      const res = await apiClient.post(`/api/roadmap/${roadmapId}/restore`);
+      setRoadmap(res.data);
+      setArchivedRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+      if (roadmap) setArchivedRoadmaps(prev => [roadmap, ...prev]);
+      toast.success('Đã khôi phục lộ trình!');
+    } catch {
+      toast.error('Khôi phục thất bại.');
+    } finally {
+      setIsRestoring(null);
+    }
+  };
 
   const handleGenerateSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -172,7 +192,13 @@ export const RoadmapScreen: React.FC = () => {
       {showGenerateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-background border border-border p-6 rounded-2xl max-w-md w-full mx-4 shadow-2xl animate-slide-up">
-            <h3 className="text-xl font-bold text-white mb-4">Tạo Lộ Trình Học Tập</h3>
+            <h3 className="text-xl font-bold text-white mb-1">Tạo Lộ Trình Học Tập</h3>
+            {roadmap && (
+              <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-lg px-3 py-2 mb-4">
+                <span className="text-yellow-400 mt-0.5">⚠️</span>
+                <span>Lộ trình hiện tại “<strong>{roadmap.title}</strong>” sẽ bị lưu vào mục Lịch sử. Bạn có thể khôi phục nó bất cứ lúc nào.</span>
+              </div>
+            )}
             
             <form onSubmit={handleGenerateSubmit} className="space-y-4">
               <div>
@@ -231,6 +257,37 @@ export const RoadmapScreen: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Archived Roadmaps */}
+      {archivedRoadmaps.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-4 h-4 text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Lịch sử Lộ trình ({archivedRoadmaps.length})</h3>
+          </div>
+          <div className="space-y-3">
+            {archivedRoadmaps.map(r => (
+              <div key={r.id} className="glass-card p-4 flex items-center justify-between opacity-70 hover:opacity-100 transition-opacity">
+                <div>
+                  <p className="text-white font-medium text-sm">{r.title}</p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    {r.milestones?.length || 0} cột mốc • Tạo lúc {new Date(r.created_at).toLocaleDateString('vi-VN')}
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  className="text-xs px-3 py-1.5 h-auto"
+                  onClick={() => handleRestore(r.id)}
+                  disabled={isRestoring === r.id}
+                >
+                  {isRestoring === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                  Khôi phục
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )}

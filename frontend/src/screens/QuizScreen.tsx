@@ -40,21 +40,36 @@ export const QuizScreen: React.FC = () => {
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roadmapMilestones, setRoadmapMilestones] = useState<{id: string, title: string}[]>([]);
+  const [allRoadmaps, setAllRoadmaps] = useState<{id: string, title: string, milestones: {id: string, title: string}[]}[]>([]);
+  const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiClient.get('/api/roadmap')
-      .then(res => {
-        const milestones = res.data?.milestones || [];
-        setRoadmapMilestones(milestones);
-        if (milestones.length > 0) {
-          setTopic(milestones[0].title);
+    const fetchRoadmaps = async () => {
+      try {
+        const [activeRes, archivedRes] = await Promise.allSettled([
+          apiClient.get('/api/roadmap'),
+          apiClient.get('/api/roadmap/archived'),
+        ]);
+        const active = activeRes.status === 'fulfilled' ? [activeRes.value.data] : [];
+        const archived = archivedRes.status === 'fulfilled' ? archivedRes.value.data : [];
+        const combined = [...active, ...archived].filter(Boolean);
+        setAllRoadmaps(combined);
+        if (combined.length > 0) {
+          const first = combined[0];
+          setSelectedRoadmapId(first.id);
+          setRoadmapMilestones(first.milestones || []);
+          if (first.milestones?.length > 0) setTopic(first.milestones[0].title);
+          else setTopicSource('custom');
         } else {
           setTopicSource('custom');
         }
-      })
-      .catch(() => setTopicSource('custom'));
+      } catch {
+        setTopicSource('custom');
+      }
+    };
+    fetchRoadmaps();
   }, []);
 
   // Handle retake from history page
@@ -124,12 +139,15 @@ export const QuizScreen: React.FC = () => {
             <div className="flex gap-2 p-1 bg-surface rounded-xl">
               <button
                 type="button"
-                onClick={() => { setTopicSource('roadmap'); if (roadmapMilestones.length > 0) setTopic(roadmapMilestones[0].title); }}
+                onClick={() => {
+                  setTopicSource('roadmap');
+                  if (roadmapMilestones.length > 0) setTopic(roadmapMilestones[0].title);
+                }}
                 className={cn(
                   "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
                   topicSource === 'roadmap' ? "bg-primary text-white shadow" : "text-gray-400 hover:text-gray-200"
                 )}
-                disabled={roadmapMilestones.length === 0}
+                disabled={allRoadmaps.length === 0}
               >
                 📍 Từ Lộ Trình
               </button>
@@ -149,15 +167,36 @@ export const QuizScreen: React.FC = () => {
             <div>
               <label className="text-xs text-gray-500 font-medium">Chủ đề</label>
               {topicSource === 'roadmap' ? (
-                <select
-                  className="input-field mt-1"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                >
-                  {roadmapMilestones.map((m) => (
-                    <option key={m.id} value={m.title}>{m.title}</option>
-                  ))}
-                </select>
+                <div className="space-y-2 mt-1">
+                  {allRoadmaps.length > 1 && (
+                    <select
+                      className="input-field"
+                      value={selectedRoadmapId}
+                      onChange={(e) => {
+                        const r = allRoadmaps.find(r => r.id === e.target.value);
+                        setSelectedRoadmapId(e.target.value);
+                        const milestones = r?.milestones || [];
+                        setRoadmapMilestones(milestones);
+                        if (milestones.length > 0) setTopic(milestones[0].title);
+                      }}
+                    >
+                      {allRoadmaps.map((r, i) => (
+                        <option key={r.id} value={r.id}>
+                          {i === 0 ? '📌 ' : '🗂 '}{r.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <select
+                    className="input-field"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                  >
+                    {roadmapMilestones.map((m) => (
+                      <option key={m.id} value={m.title}>{m.title}</option>
+                    ))}
+                  </select>
+                </div>
               ) : (
                 <input
                   className="input-field mt-1"

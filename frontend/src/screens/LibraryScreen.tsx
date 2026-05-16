@@ -22,6 +22,11 @@ export const LibraryScreen: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
+  const [activeTab, setActiveTab] = useState<'summary' | 'content'>('summary');
+  const [docContent, setDocContent] = useState<string | null>(null);
+  const [docHtml, setDocHtml] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -38,6 +43,25 @@ export const LibraryScreen: React.FC = () => {
   }, [search]);
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
+
+  // Auto-poll if any document is processing
+  useEffect(() => {
+    const hasProcessing = docs.some(d => d.status === 'processing');
+    if (!hasProcessing) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const params: any = {};
+        if (search) params.search = search;
+        const res = await apiClient.get('/api/documents', { params });
+        setDocs(res.data);
+      } catch (err) {
+        // ignore errors during silent polling
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [docs, search]);
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -141,7 +165,16 @@ export const LibraryScreen: React.FC = () => {
             <div
               key={doc.id}
               className="glass-card p-4 hover:border-primary/50 transition-colors group relative flex flex-col h-48 cursor-pointer"
-              onClick={() => setSelectedDoc(doc)}
+              onClick={() => {
+                setSelectedDoc(doc);
+                setActiveTab('summary');
+                setDocContent(null);
+                setDocHtml(null);
+                if (pdfUrl) {
+                  URL.revokeObjectURL(pdfUrl);
+                  setPdfUrl(null);
+                }
+              }}
             >
               <div className="flex justify-between items-start mb-3">
                 <div className={cn(
@@ -177,23 +210,108 @@ export const LibraryScreen: React.FC = () => {
 
       {/* Document Detail Modal */}
       {selectedDoc && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedDoc(null)}>
-          <div className="glass-card p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">{selectedDoc.original_name}</h3>
-              <button onClick={() => setSelectedDoc(null)}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => {
+          setSelectedDoc(null);
+          if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+          setPdfUrl(null);
+        }}>
+          <div className="glass-card p-6 max-w-4xl w-full h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-4 flex-shrink-0">
+              <h3 className="text-lg font-bold text-white truncate mr-4">{selectedDoc.original_name}</h3>
+              <button onClick={() => {
+                setSelectedDoc(null);
+                if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+                setPdfUrl(null);
+              }}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
             </div>
-            <div className="flex gap-3 mb-4">
-              <Button variant="secondary" className="text-sm" onClick={() => handleSummarize(selectedDoc)} disabled={isSummarizing}>
-                {isSummarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {selectedDoc.summary ? 'Tóm tắt lại' : 'Tóm tắt bằng AI'}
-              </Button>
+            
+            <div className="flex gap-4 border-b border-border mb-4 flex-shrink-0">
+              <button 
+                className={cn("pb-2 text-sm font-medium transition-colors border-b-2", activeTab === 'summary' ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-300")}
+                onClick={() => setActiveTab('summary')}
+              >
+                Tóm tắt AI
+              </button>
+              <button 
+                className={cn("pb-2 text-sm font-medium transition-colors border-b-2", activeTab === 'content' ? "text-primary border-primary" : "text-gray-400 border-transparent hover:text-gray-300")}
+                onClick={async () => {
+                  setActiveTab('content');
+                  if (selectedDoc.file_type !== 'pdf' && !docContent && !docHtml) {
+                    setIsLoadingContent(true);
+                    try {
+                      const res = await apiClient.get(`/api/documents/${selectedDoc.id}/content`);
+                      setDocContent(res.data.text);
+                      setDocHtml(res.data.html || null);
+                    } catch {
+                      setDocContent("Lỗi: Không thể tải nội dung.");
+                      setDocHtml(null);
+                    } finally {
+                      setIsLoadingContent(false);
+                    }
+                  } else if (selectedDoc.file_type === 'pdf' && !pdfUrl) {
+                    setIsLoadingContent(true);
+                    try {
+                      const res = await apiClient.get(`/api/documents/${selectedDoc.id}/download`, { responseType: 'blob' });
+                      const url = URL.createObjectURL(res.data);
+                      setPdfUrl(url);
+                    } catch {
+                      toast.error("Không thể tải PDF");
+                    } finally {
+                      setIsLoadingContent(false);
+                    }
+                  }
+                }}
+              >
+                Nội dung chi tiết
+              </button>
             </div>
-            {selectedDoc.summary && (
-              <div className="bg-background/50 rounded-xl p-4 border border-border">
-                <p className="text-sm text-gray-300 leading-relaxed">{selectedDoc.summary}</p>
-              </div>
-            )}
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {activeTab === 'summary' ? (
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <Button variant="secondary" className="text-sm" onClick={() => handleSummarize(selectedDoc)} disabled={isSummarizing}>
+                      {isSummarizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {selectedDoc.summary ? 'Tóm tắt lại' : 'Tóm tắt bằng AI'}
+                    </Button>
+                  </div>
+                  {selectedDoc.summary ? (
+                    <div className="bg-background/50 rounded-xl p-4 border border-border">
+                      <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{selectedDoc.summary}</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm italic">Tài liệu này chưa có tóm tắt. Bấm nút phía trên để AI tóm tắt cho bạn.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="h-full bg-background/50 rounded-xl border border-border overflow-hidden relative">
+                  {isLoadingContent ? (
+                    <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+                  ) : selectedDoc.file_type === 'pdf' ? (
+                    pdfUrl && (
+                      <iframe 
+                        src={pdfUrl} 
+                        className="w-full h-full border-none"
+                        title="PDF Viewer"
+                      />
+                    )
+                  ) : (
+                    <div className="p-6 h-full overflow-y-auto">
+                      {docHtml ? (
+                        <div 
+                          className="prose prose-invert prose-sm sm:prose-base max-w-none 
+                            prose-headings:text-white prose-p:text-gray-300 prose-a:text-primary 
+                            prose-li:text-gray-300 bg-surface/20 p-6 rounded-xl border border-white/5"
+                          dangerouslySetInnerHTML={{ __html: docHtml }} 
+                        />
+                      ) : (
+                        <pre className="text-sm text-gray-300 whitespace-pre-wrap font-sans leading-relaxed">{docContent}</pre>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

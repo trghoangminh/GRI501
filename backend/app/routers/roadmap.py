@@ -37,6 +37,29 @@ def regenerate(request: RoadmapGenerateRequest, db: Session = Depends(get_db), c
     roadmap = create_roadmap(db, current_user, request)
     return roadmap
 
+@router.get("/archived")
+def get_archived(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    roadmaps = db.query(Roadmap).filter(
+        Roadmap.user_id == current_user.id,
+        Roadmap.status == "archived"
+    ).order_by(Roadmap.created_at.desc()).all()
+    return roadmaps
+
+@router.post("/{roadmap_id}/restore", response_model=RoadmapResponse)
+def restore(roadmap_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Archive current active roadmap if exists
+    current = get_current_roadmap(db, current_user.id)
+    if current:
+        current.status = "archived"
+    # Restore the requested one
+    roadmap = db.query(Roadmap).filter(Roadmap.id == roadmap_id, Roadmap.user_id == current_user.id).first()
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    roadmap.status = "active"
+    db.commit()
+    db.refresh(roadmap)
+    return roadmap
+
 @router.patch("/milestones/{milestone_id}", response_model=MilestoneResponse)
 def update_milestone(
     milestone_id: UUID, 

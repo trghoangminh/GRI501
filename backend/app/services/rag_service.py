@@ -25,20 +25,39 @@ def process_and_index_document(file_path: str, document_id: UUID, user_id: UUID,
     
     # 1. Extract Text
     text = ""
+    ext = os.path.splitext(file_path)[1].lower()
     try:
-        reader = PdfReader(file_path)
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-    except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
-        # fallback to simple text read if it's a txt file or pypdf fails
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
+        if ext == ".pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(file_path)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        elif ext == ".docx":
+            from docx import Document as DocxDocument
+            doc = DocxDocument(file_path)
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    text += para.text + "\n"
+        elif ext == ".pptx":
+            from pptx import Presentation
+            prs = Presentation(file_path)
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text.strip():
+                        text += shape.text + "\n"
+        else:
+            # Fallback: try plain text
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
-        except:
-            raise Exception("Could not extract text from document")
+    except Exception as e:
+        print(f"Error reading file {file_path} (ext={ext}): {e}")
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
+        except Exception as e2:
+            raise Exception(f"Could not extract text from document: {e2}")
 
     if not text.strip():
         raise Exception("Document is empty or text could not be extracted")

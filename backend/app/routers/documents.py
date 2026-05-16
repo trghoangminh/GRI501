@@ -131,3 +131,58 @@ def generate_quiz_from_document(document_id: UUID, db: Session = Depends(get_db)
     # Returns quiz_id
     quiz = generate_quiz(db, current_user.id, "", 10, document_id)
     return {"status": "success", "data": {"quiz_id": quiz.id}}
+
+from fastapi.responses import FileResponse
+
+@router.get("/{document_id}/download")
+def download_document(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    if not document or not os.path.exists(document.file_path):
+        raise HTTPException(status_code=404, detail="Document not found")
+    return FileResponse(path=document.file_path, filename=document.original_name)
+
+@router.get("/{document_id}/content")
+def get_document_raw_content(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    if not document or not os.path.exists(document.file_path):
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Extract text to show to user
+    text = ""
+    html = ""
+    ext = os.path.splitext(document.file_path)[1].lower()
+    try:
+        if ext == ".pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(document.file_path)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        elif ext == ".docx":
+            try:
+                import mammoth
+                with open(document.file_path, "rb") as docx_file:
+                    result = mammoth.convert_to_html(docx_file)
+                    html = result.value
+            except Exception as e:
+                print(f"Mammoth error: {e}")
+                from docx import Document as DocxDocument
+                doc = DocxDocument(document.file_path)
+                for para in doc.paragraphs:
+                    if para.text.strip():
+                        text += para.text + "\n"
+        elif ext == ".pptx":
+            from pptx import Presentation
+            prs = Presentation(document.file_path)
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text") and shape.text.strip():
+                        text += shape.text + "\n"
+        else:
+            with open(document.file_path, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
+    except Exception:
+        text = "Lỗi: Không thể trích xuất văn bản từ tài liệu này để hiển thị."
+        
+    return {"text": text, "html": html}
