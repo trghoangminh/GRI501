@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import apiClient from '../../api/client';
-import { Users, Map, HelpCircle, FileText, Activity, TrendingUp, Clock, UserCheck, BookOpen, Award } from 'lucide-react';
+import { Users, Map, HelpCircle, FileText, Activity, TrendingUp, Clock, UserCheck, BookOpen, Award, Send, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Stats {
   total_users: number;
@@ -16,6 +17,9 @@ interface Stats {
 export const AdminDashboardScreen: React.FC = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   useEffect(() => {
     apiClient.get('/api/admin/stats')
@@ -23,6 +27,27 @@ export const AdminDashboardScreen: React.FC = () => {
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  const handleBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle || !broadcastMessage) return;
+    
+    setIsBroadcasting(true);
+    try {
+      const res = await apiClient.post('/api/admin/broadcast', {
+        title: broadcastTitle,
+        message: broadcastMessage,
+        type: 'admin'
+      });
+      toast.success(`Đã gửi thông báo tới ${res.data.users_notified} học viên!`);
+      setBroadcastTitle('');
+      setBroadcastMessage('');
+    } catch {
+      toast.error('Gửi thông báo thất bại');
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -149,6 +174,44 @@ export const AdminDashboardScreen: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Broadcast Notification Form */}
+      <div className="glass-panel rounded-2xl p-6 border border-white/5 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+            <Send className="w-4 h-4 text-emerald-500" />
+          </div>
+          <h2 className="text-lg font-semibold text-white font-heading">Gửi thông báo (Broadcast)</h2>
+        </div>
+        <form onSubmit={handleBroadcast} className="flex gap-4 items-start">
+          <div className="flex-1 space-y-3">
+            <input 
+              type="text" 
+              placeholder="Tiêu đề thông báo..." 
+              value={broadcastTitle}
+              onChange={e => setBroadcastTitle(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary"
+              required
+            />
+            <textarea 
+              placeholder="Nội dung thông báo (Ví dụ: Hệ thống bảo trì vào 12h đêm nay...)" 
+              value={broadcastMessage}
+              onChange={e => setBroadcastMessage(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary resize-none h-16"
+              required
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={isBroadcasting || !broadcastTitle || !broadcastMessage}
+            className="px-6 h-10 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+          >
+            {isBroadcasting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Gửi toàn hệ thống
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 };

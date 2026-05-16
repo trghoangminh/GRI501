@@ -25,6 +25,12 @@ class User(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Gamification Fields
+    current_streak = Column(Integer, default=0)
+    longest_streak = Column(Integer, default=0)
+    last_study_date = Column(Date, nullable=True)
+    exp_points = Column(Integer, default=0)
 
     # Relationships
     roadmaps = relationship("Roadmap", back_populates="user", cascade="all, delete-orphan")

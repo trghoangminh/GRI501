@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.config import settings
 
-from app.routers import auth, users, roadmap, chat, documents, quiz, progress, admin
+from app.routers import auth, users, roadmap, chat, documents, quiz, progress, admin, notes, notifications
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="AI Study Planner API", version="1.0.0")
@@ -22,7 +22,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+import logging
+import os
+import time
 
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+# Configure custom logger
+app_logger = logging.getLogger("lumina")
+app_logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("logs/server.log")
+file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(client)s: %(method)s %(url)s - %(status)s - %(duration)sms"))
+app_logger.addHandler(file_handler)
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    try:
+        response = await call_next(request)
+        duration = int((time.time() - start_time) * 1000)
+        app_logger.info("", extra={
+            "client": request.client.host if request.client else "unknown",
+            "method": request.method,
+            "url": request.url.path,
+            "status": response.status_code,
+            "duration": duration
+        })
+        return response
+    except Exception as e:
+        duration = int((time.time() - start_time) * 1000)
+        app_logger.error(f"Exception: {str(e)}", extra={
+            "client": request.client.host if request.client else "unknown",
+            "method": request.method,
+            "url": request.url.path,
+            "status": 500,
+            "duration": duration
+        })
+        raise
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -42,6 +79,8 @@ app.include_router(documents.router, prefix="/api")
 app.include_router(quiz.router, prefix="/api")
 app.include_router(progress.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(notes.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 @app.get("/")
 def read_root():

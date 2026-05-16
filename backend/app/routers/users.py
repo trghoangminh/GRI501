@@ -8,11 +8,19 @@ from app.schemas.user import UserProfile, UserUpdate
 from app.core.dependencies import get_current_user
 from app.config import settings
 import uuid
+from app.services.gamification_service import log_user_activity
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserProfile)
 def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.post("/me/ping", response_model=UserProfile)
+def ping_activity(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Đăng nhập hàng ngày để nhận Streak"""
+    log_user_activity(db, current_user.id, exp_reward=10)
+    db.refresh(current_user)
     return current_user
 
 @router.put("/me", response_model=UserProfile)

@@ -12,6 +12,9 @@ interface User {
   hours_per_week: number | null;
   deadline: string | null;
   role: string;
+  current_streak: number;
+  longest_streak: number;
+  exp_points: number;
 }
 
 interface AuthContextType {
@@ -29,11 +32,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On app mount, check if a token exists and fetch user profile
+  // On app mount, check if a token exists and fetch user profile (with daily ping)
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
-      apiClient.get('/api/users/me')
+      apiClient.post('/api/users/me/ping')
         .then((res) => setUser(res.data))
         .catch(() => {
           localStorage.removeItem('access_token');
@@ -50,7 +53,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { access_token, refresh_token, user: userData } = res.data;
     localStorage.setItem('access_token', access_token);
     localStorage.setItem('refresh_token', refresh_token);
-    setUser(userData);
+    
+    // Ping for daily streak after login
+    try {
+      const pingRes = await apiClient.post('/api/users/me/ping');
+      setUser(pingRes.data);
+    } catch {
+      setUser(userData);
+    }
+    
     toast.success(`Welcome back, ${userData.full_name.split(' ')[0]}! 👋`);
   };
 

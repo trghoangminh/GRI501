@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User
 from app.models.auth import BlacklistedToken
+from app.services.settings_service import get_setting_value
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -34,6 +35,9 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+        
+    if user.role != "admin" and get_setting_value(db, "maintenance"):
+        raise HTTPException(status_code=503, detail="Hệ thống đang được bảo trì. Vui lòng quay lại sau.")
         
     return user
 

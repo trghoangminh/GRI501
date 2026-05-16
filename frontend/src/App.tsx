@@ -13,11 +13,15 @@ import { QuizScreen } from './screens/QuizScreen';
 import { QuizHistoryScreen } from './screens/QuizHistoryScreen';
 import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { NotesScreen } from './screens/NotesScreen';
 
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AdminDashboardScreen } from './screens/admin/AdminDashboardScreen';
 import { AdminUsersScreen } from './screens/admin/AdminUsersScreen';
 import { AdminSettingsScreen } from './screens/admin/AdminSettingsScreen';
+import { AdminLogsScreen } from './screens/admin/AdminLogsScreen';
+import { AdminDocumentsScreen } from './screens/admin/AdminDocumentsScreen';
+import { AdminChatLogsScreen } from './screens/admin/AdminChatLogsScreen';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -56,7 +60,10 @@ function AppContent() {
           <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboardScreen />} />
           <Route path="/admin/users" element={<AdminUsersScreen />} />
+          <Route path="/admin/documents" element={<AdminDocumentsScreen />} />
+          <Route path="/admin/chats" element={<AdminChatLogsScreen />} />
           <Route path="/admin/settings" element={<AdminSettingsScreen />} />
+          <Route path="/admin/logs" element={<AdminLogsScreen />} />
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </AdminLayout>
@@ -75,6 +82,7 @@ function AppContent() {
         <Route path="/roadmap" element={<RoadmapScreen />} />
         <Route path="/chat" element={<ChatbotScreen />} />
         <Route path="/library" element={<LibraryScreen />} />
+        <Route path="/notes" element={<NotesScreen />} />
         <Route path="/quizzes" element={<QuizScreen />} />
         <Route path="/quiz-history" element={<QuizHistoryScreen />} />
         <Route path="/analytics" element={<AnalyticsScreen />} />

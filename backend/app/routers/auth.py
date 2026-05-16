@@ -9,11 +9,15 @@ from app.core.security import verify_password, create_access_token, create_refre
 from app.core.dependencies import oauth2_scheme
 from datetime import datetime, timedelta
 import uuid
+from app.services.settings_service import get_setting_value
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=Token)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    if not get_setting_value(db, "registration"):
+        raise HTTPException(status_code=403, detail="Hệ thống hiện đang tạm thời đóng đăng ký thành viên mới.")
+        
     user = register_user(db, user_in)
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(subject=user.id)
@@ -26,6 +30,9 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+        
+    if user.role != "admin" and get_setting_value(db, "maintenance"):
+        raise HTTPException(status_code=503, detail="Hệ thống đang được bảo trì. Vui lòng quay lại sau.")
         
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(subject=user.id)

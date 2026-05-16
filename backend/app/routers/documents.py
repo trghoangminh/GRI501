@@ -14,6 +14,7 @@ from app.config import settings
 from app.services.document_service import process_document_background, generate_document_summary
 from app.services.quiz_service import generate_quiz
 from app.services.rag_service import delete_document_vectors
+from app.services.settings_service import get_setting_value
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -31,6 +32,9 @@ async def upload_document(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
+    if not get_setting_value(db, "rag_enabled"):
+        raise HTTPException(status_code=403, detail="Tính năng RAG và Thư viện tài liệu hiện đang bị vô hiệu hóa.")
+
     # Check size
     file.file.seek(0, 2)
     file_size = file.file.tell()
@@ -116,7 +120,14 @@ def delete_document(document_id: UUID, db: Session = Depends(get_db), current_us
 
 @router.post("/{document_id}/summarize", response_model=DocumentSummaryResponse)
 def summarize_document(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    if not get_setting_value(db, "llm_enabled"):
+        raise HTTPException(status_code=403, detail="Tính năng Tóm tắt bằng AI hiện đang bị vô hiệu hóa.")
+        
+    query = db.query(Document).filter(Document.id == document_id)
+    if current_user.role != "admin":
+        query = query.filter(Document.user_id == current_user.id)
+    document = query.first()
+    
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
@@ -128,6 +139,9 @@ def summarize_document(document_id: UUID, db: Session = Depends(get_db), current
 
 @router.post("/{document_id}/quiz")
 def generate_quiz_from_document(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not get_setting_value(db, "quiz_generation"):
+        raise HTTPException(status_code=403, detail="Tính năng tự động tạo câu hỏi hiện đang bị vô hiệu hóa.")
+        
     # Returns quiz_id
     quiz = generate_quiz(db, current_user.id, "", 10, document_id)
     return {"status": "success", "data": {"quiz_id": quiz.id}}
@@ -136,14 +150,22 @@ from fastapi.responses import FileResponse
 
 @router.get("/{document_id}/download")
 def download_document(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    query = db.query(Document).filter(Document.id == document_id)
+    if current_user.role != "admin":
+        query = query.filter(Document.user_id == current_user.id)
+    document = query.first()
+    
     if not document or not os.path.exists(document.file_path):
         raise HTTPException(status_code=404, detail="Document not found")
     return FileResponse(path=document.file_path, filename=document.original_name)
 
 @router.get("/{document_id}/content")
 def get_document_raw_content(document_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    query = db.query(Document).filter(Document.id == document_id)
+    if current_user.role != "admin":
+        query = query.filter(Document.user_id == current_user.id)
+    document = query.first()
+    
     if not document or not os.path.exists(document.file_path):
         raise HTTPException(status_code=404, detail="Document not found")
     

@@ -7,11 +7,16 @@ from app.models.roadmap import Roadmap, Milestone
 from app.schemas.roadmap import RoadmapResponse, MilestoneUpdate, MilestoneResponse, RoadmapGenerateRequest
 from app.core.dependencies import get_current_user
 from app.services.roadmap_service import create_roadmap, get_current_roadmap
+from app.services.settings_service import get_setting_value
+from app.services.gamification_service import log_user_activity
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
 @router.post("/generate", response_model=RoadmapResponse)
 def generate(request: RoadmapGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not get_setting_value(db, "llm_enabled"):
+        raise HTTPException(status_code=403, detail="Tính năng AI/LLM hiện đang bị vô hiệu hóa.")
+    
     existing = get_current_roadmap(db, current_user.id)
     if existing:
         existing.status = "archived"
@@ -29,6 +34,9 @@ def get_roadmap(db: Session = Depends(get_db), current_user: User = Depends(get_
 
 @router.post("/regenerate", response_model=RoadmapResponse)
 def regenerate(request: RoadmapGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not get_setting_value(db, "llm_enabled"):
+        raise HTTPException(status_code=403, detail="Tính năng AI/LLM hiện đang bị vô hiệu hóa.")
+
     existing = get_current_roadmap(db, current_user.id)
     if existing:
         existing.status = "archived"
@@ -79,6 +87,11 @@ def update_milestone(
         raise HTTPException(status_code=400, detail="Invalid status")
         
     milestone.status = update_data.status
+    
+    # Gamification: Reward XP if milestone completed
+    if update_data.status == "completed":
+        log_user_activity(db, current_user.id, exp_reward=50)
+        
     db.commit()
     db.refresh(milestone)
     return milestone

@@ -8,11 +8,16 @@ from app.models.chat import ChatSession, ChatMessage
 from app.schemas.chat import ChatSessionCreate, ChatSessionResponse, ChatMessageCreate, ChatMessageResponse
 from app.core.dependencies import get_current_user
 from app.services.chat_service import stream_chat_message
+from app.services.settings_service import get_setting_value
+from app.services.gamification_service import log_user_activity
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 @router.post("/sessions", response_model=ChatSessionResponse)
 def create_session(session_in: ChatSessionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not get_setting_value(db, "llm_enabled"):
+        raise HTTPException(status_code=403, detail="Tính năng AI/LLM hiện đang bị vô hiệu hóa bởi quản trị viên.")
+
     session = ChatSession(user_id=current_user.id, title=session_in.title)
     db.add(session)
     db.commit()
@@ -37,6 +42,7 @@ def delete_session(session_id: UUID, db: Session = Depends(get_db), current_user
     
     db.delete(session)
     db.commit()
+    
     return {"status": "success", "message": "Session deleted successfully"}
 
 @router.get("/sessions/{session_id}/messages", response_model=List[ChatMessageResponse])
@@ -58,4 +64,7 @@ def send_message(
     """
     Returns a Server-Sent Events (SSE) stream.
     """
+    # Gamification: Reward XP for chatting
+    log_user_activity(db, current_user.id, exp_reward=10)
+    
     return stream_chat_message(db, session_id, current_user.id, msg_in.content)

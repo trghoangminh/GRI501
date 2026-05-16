@@ -1,13 +1,16 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings as SettingsIcon, Sparkles, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Settings as SettingsIcon, Sparkles, User, LogOut, Terminal, FileText, MessageSquare } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const ADMIN_NAV_ITEMS = [
   { path: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
   { path: '/admin/users', label: 'Quản lý Người dùng', icon: Users },
+  { path: '/admin/documents', label: 'Quản lý Tài liệu', icon: FileText },
+  { path: '/admin/chats', label: 'Lịch sử Chat AI', icon: MessageSquare },
   { path: '/admin/settings', label: 'Cài đặt Hệ thống', icon: SettingsIcon },
+  { path: '/admin/logs', label: 'Giám sát Server', icon: Terminal },
 ];
 
 interface AdminLayoutProps {

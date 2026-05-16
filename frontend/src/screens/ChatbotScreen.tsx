@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Sparkles, Send, Trash2, Loader2 } from 'lucide-react';
+import { Plus, MessageSquare, Sparkles, Send, Trash2, Loader2, BookOpen } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
@@ -78,6 +78,18 @@ export const ChatbotScreen: React.FC = () => {
     } finally {
       setIsDeleting(false);
       setSessionToDelete(null);
+    }
+  };
+
+  const saveToNote = async (content: string) => {
+    try {
+      await apiClient.post('/api/notes/', {
+        title: 'Lưu từ Chat AI - ' + new Date().toLocaleDateString('vi-VN'),
+        content: content
+      });
+      toast.success('Đã lưu thành công vào Sổ tay!');
+    } catch {
+      toast.error('Lưu vào sổ tay thất bại');
     }
   };
 
@@ -250,6 +262,16 @@ export const ChatbotScreen: React.FC = () => {
                     <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold bg-background px-2 py-1 rounded-md border border-border/50">
                       📚 Dựa trên tài liệu của bạn
                     </span>
+                  </div>
+                )}
+                {msg.role === 'assistant' && msg.content && !isStreaming && (
+                  <div className="mt-3 flex gap-2 border-t border-border/50 pt-2">
+                    <button 
+                      onClick={() => saveToNote(msg.content)}
+                      className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" /> Lưu vào Sổ tay
+                    </button>
                   </div>
                 )}
               </div>

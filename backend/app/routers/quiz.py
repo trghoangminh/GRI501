@@ -8,11 +8,15 @@ from app.models.quiz import Quiz, QuizAttempt
 from app.schemas.quiz import QuizGenerateReq, QuizResponse, QuizAttemptReq, QuizAttemptResponse, QuizStatsResponse
 from app.core.dependencies import get_current_user
 from app.services.quiz_service import generate_quiz
+from app.services.settings_service import get_setting_value
+from app.services.gamification_service import log_user_activity
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
 @router.post("/generate", response_model=QuizResponse)
 def generate(req: QuizGenerateReq, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not get_setting_value(db, "quiz_generation"):
+        raise HTTPException(status_code=403, detail="Tính năng tự động tạo câu hỏi hiện đang bị vô hiệu hóa.")
     quiz = generate_quiz(db, current_user.id, req.topic, req.num_questions)
     return quiz
 
@@ -80,6 +84,10 @@ def submit_attempt(quiz_id: UUID, req: QuizAttemptReq, db: Session = Depends(get
             topics=[quiz.topic] if quiz.topic else [],
             notes=f"Tự động ghi từ bài quiz: {quiz.title}"
         ))
+
+    # Gamification: Reward based on score (50 XP base + score/2)
+    exp = 50 + int(score * 0.5)
+    log_user_activity(db, current_user.id, exp_reward=exp)
 
     db.commit()
     

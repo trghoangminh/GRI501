@@ -32,6 +32,11 @@ class UserProfile(UserBase):
     role: str
     created_at: datetime
     updated_at: datetime
+    
+    # Gamification
+    current_streak: Optional[int] = 0
+    longest_streak: Optional[int] = 0
+    exp_points: Optional[int] = 0
 
     model_config = {"from_attributes": True}
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Shield, Database, Bell, Globe, Key, Server, ChevronRight, Check, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Database, Bell, Globe, Key, Server, ChevronRight, Check, Info, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import apiClient from '../../api/client';
 
 interface SettingToggle {
   label: string;
@@ -10,24 +11,48 @@ interface SettingToggle {
 
 export const AdminSettingsScreen: React.FC = () => {
   const [saved, setSaved] = useState(false);
-  const [toggles, setToggles] = useState<Record<string, SettingToggle>>({
-    maintenance: { label: 'Chế độ bảo trì', description: 'Tạm thời vô hiệu hóa quyền truy cập đối với người dùng không phải quản trị viên', value: false },
-    registration: { label: 'Mở Đăng ký', description: 'Cho phép người dùng mới tạo tài khoản', value: true },
-    llm_enabled: { label: 'Tính năng LLM', description: 'Bật lộ trình học tập do AI hỗ trợ và các tính năng trò chuyện', value: true },
-    rag_enabled: { label: 'Tìm kiếm tài liệu RAG', description: 'Bật tính năng Khởi tạo Tăng cường Truy xuất (RAG) cho tài liệu', value: true },
-    quiz_generation: { label: 'Tự động tạo câu hỏi', description: 'Cho phép tự động tạo câu hỏi trắc nghiệm từ tài liệu tải lên', value: true },
-    email_notifications: { label: 'Thông báo Email', description: 'Gửi email thông báo hệ thống tới người dùng', value: false },
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toggles, setToggles] = useState<Record<string, SettingToggle>>({});
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await apiClient.get('/api/admin/settings');
+        setToggles(res.data.data);
+      } catch (error) {
+        toast.error('Không thể tải cài đặt');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const toggle = (key: string) => {
     setToggles(prev => ({ ...prev, [key]: { ...prev[key], value: !prev[key].value } }));
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    toast.success('Đã lưu cài đặt thành công');
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload: Record<string, boolean> = {};
+      Object.keys(toggles).forEach(k => payload[k] = toggles[k].value);
+      
+      await apiClient.post('/api/admin/settings', { settings: payload });
+      setSaved(true);
+      toast.success('Đã lưu cài đặt thành công');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      toast.error('Không thể lưu cài đặt');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   const infoCards = [
     { icon: Database, label: 'Cơ sở dữ liệu', value: 'Supabase PostgreSQL', status: 'Đã kết nối', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
@@ -100,6 +125,7 @@ export const AdminSettingsScreen: React.FC = () => {
             <div className="divide-y divide-white/5">
               {group.keys.map(key => {
                 const s = toggles[key];
+                if (!s) return null;
                 return (
                   <div key={key} className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors">
                     <div>
@@ -124,10 +150,11 @@ export const AdminSettingsScreen: React.FC = () => {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20"
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-red-500/20 disabled:opacity-50"
         >
-          {saved ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          {saved ? 'Đã lưu!' : 'Lưu Cài đặt'}
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {saving ? 'Đang lưu...' : saved ? 'Đã lưu!' : 'Lưu Cài đặt'}
         </button>
       </div>
     </div>

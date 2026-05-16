@@ -32,7 +32,15 @@ export const AuthScreens: React.FC = () => {
     try {
       await login(loginEmail, loginPassword);
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Đăng nhập thất bại. Kiểm tra lại thông tin.');
+      let errorMsg = 'Đăng nhập thất bại. Kiểm tra lại thông tin.';
+      if (err?.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          errorMsg = 'Vui lòng kiểm tra lại định dạng dữ liệu (Email/Mật khẩu).';
+        } else {
+          errorMsg = String(err.response.data.detail);
+        }
+      }
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -41,13 +49,22 @@ export const AuthScreens: React.FC = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName || !regEmail || !regPassword) return toast.error('Vui lòng điền đầy đủ thông tin');
+    if (regPassword.length < 6) return toast.error('Mật khẩu phải dài ít nhất 6 ký tự');
     if (regPassword !== regConfirm) return toast.error('Mật khẩu không khớp');
     if (!agreedTerms) return toast.error('Bạn cần đồng ý với Điều khoản dịch vụ');
     setIsLoading(true);
     try {
       await register(regName, regEmail, regPassword);
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Đăng ký thất bại. Email có thể đã được sử dụng.');
+      let errorMsg = 'Đăng ký thất bại. Email có thể đã được sử dụng.';
+      if (err?.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          errorMsg = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại (VD: Mật khẩu quá ngắn, sai định dạng Email).';
+        } else {
+          errorMsg = String(err.response.data.detail);
+        }
+      }
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
