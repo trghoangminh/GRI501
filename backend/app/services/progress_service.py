@@ -49,19 +49,21 @@ def generate_insights(db: Session, user_id: UUID) -> str:
             else:
                 break
                 
-    prompt = f"""Based on this student's study data from the past week, 
-provide 3-4 short, encouraging, actionable insights.
-Be specific and motivating.
+    prompt = f"""Dựa trên dữ liệu học tập trong 7 ngày qua của học viên dưới đây, hãy đưa ra 3-4 nhận xét ngắn gọn, động viên và có tính gợi mở bằng TIẾNG VIỆT.
+Hãy đặc biệt và tạo động lực cho học viên.
 
-Data:
-- Total hours studied: {total_hours}
-- Topics covered: {', '.join(all_topics) if all_topics else 'None recorded'}
-- Quizzes taken: {quiz_count}, Average score: {avg_score:.1f}%
-- Study streak: {streak} days
+Dữ liệu:
+- Tổng giờ đã học: {total_hours} giờ
+- Các chủ đề đã học: {', '.join(all_topics) if all_topics else 'Chưa ghi nhận'}
+- Số bài kiểm tra đã làm: {quiz_count}, Điểm trung bình: {avg_score:.1f}%
+- Chuỗi học liên tiếp: {streak} ngày
 
-Write 3-4 sentences as if talking directly to the student."""
+Hãy viết 3-4 câu theo phong cách nói chuyện trực tiếp với học viên."""
 
     llm = get_llm(temperature=0.7)
     response = llm.invoke([("human", prompt)])
     
-    return response.content.strip()
+    content_raw = response.content
+    if isinstance(content_raw, list):
+        return "".join([c.get("text", "") for c in content_raw if isinstance(c, dict) and "text" in c]).strip()
+    return str(content_raw).strip()

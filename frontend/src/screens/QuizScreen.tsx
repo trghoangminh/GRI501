@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CheckSquare, Clock, Sparkles, Loader2, Trophy } from 'lucide-react';
+import { CheckSquare, Clock, Sparkles, Loader2, History } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
 import toast from 'react-hot-toast';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface Question {
   id: string;
@@ -28,6 +29,7 @@ interface AttemptResult {
 
 export const QuizScreen: React.FC = () => {
   const [step, setStep] = useState<'setup' | 'taking' | 'results'>('setup');
+  const [topicSource, setTopicSource] = useState<'roadmap' | 'custom'>('roadmap');
   const [topic, setTopic] = useState('');
   const [numQuestions, setNumQuestions] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,6 +39,36 @@ export const QuizScreen: React.FC = () => {
   const [startTime, setStartTime] = useState(0);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roadmapMilestones, setRoadmapMilestones] = useState<{id: string, title: string}[]>([]);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    apiClient.get('/api/roadmap')
+      .then(res => {
+        const milestones = res.data?.milestones || [];
+        setRoadmapMilestones(milestones);
+        if (milestones.length > 0) {
+          setTopic(milestones[0].title);
+        } else {
+          setTopicSource('custom');
+        }
+      })
+      .catch(() => setTopicSource('custom'));
+  }, []);
+
+  // Handle retake from history page
+  useEffect(() => {
+    const retakeId = searchParams.get('retake');
+    if (!retakeId) return;
+    apiClient.get(`/api/quiz/${retakeId}`).then(res => {
+      setQuiz(res.data);
+      setAnswers({});
+      setCurrentQ(0);
+      setStartTime(Date.now());
+      setStep('taking');
+    }).catch(() => toast.error('Không thể tải bài thi.'));
+  }, [searchParams]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,18 +114,60 @@ export const QuizScreen: React.FC = () => {
             <CheckSquare className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Kiểm tra Kiến thức AI</h2>
-          <p className="text-gray-400 text-sm mb-6">Tạo bài trắc nghiệm về bất kỳ chủ đề nào bằng AI.</p>
+          <p className="text-gray-400 text-sm mb-3">Tạo bài trắc nghiệm về bất kỳ chủ đề nào bằng AI.</p>
+          <button type="button" onClick={() => navigate('/quiz-history')} className="w-full flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-gray-300 mb-4 transition-colors">
+            <History className="w-3.5 h-3.5" /> Xem lịch sử các bài đã thi
+          </button>
 
           <div className="space-y-4 text-left mb-6">
+            {/* Topic Source Toggle */}
+            <div className="flex gap-2 p-1 bg-surface rounded-xl">
+              <button
+                type="button"
+                onClick={() => { setTopicSource('roadmap'); if (roadmapMilestones.length > 0) setTopic(roadmapMilestones[0].title); }}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                  topicSource === 'roadmap' ? "bg-primary text-white shadow" : "text-gray-400 hover:text-gray-200"
+                )}
+                disabled={roadmapMilestones.length === 0}
+              >
+                📍 Từ Lộ Trình
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTopicSource('custom'); setTopic(''); }}
+                className={cn(
+                  "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                  topicSource === 'custom' ? "bg-primary text-white shadow" : "text-gray-400 hover:text-gray-200"
+                )}
+              >
+                ✏️ Tự nhập
+              </button>
+            </div>
+
+            {/* Topic Input */}
             <div>
               <label className="text-xs text-gray-500 font-medium">Chủ đề</label>
-              <input
-                className="input-field mt-1"
-                placeholder="VD: React Hooks, Trí tuệ nhân tạo, Lịch sử..."
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-              />
+              {topicSource === 'roadmap' ? (
+                <select
+                  className="input-field mt-1"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                >
+                  {roadmapMilestones.map((m) => (
+                    <option key={m.id} value={m.title}>{m.title}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="input-field mt-1"
+                  placeholder="VD: React Hooks, Trí tuệ nhân tạo, Lịch sử..."
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                />
+              )}
             </div>
+
             <div>
               <label className="text-xs text-gray-500 font-medium">Số lượng câu hỏi</label>
               <select className="input-field mt-1" value={numQuestions} onChange={(e) => setNumQuestions(Number(e.target.value))}>
@@ -104,8 +178,8 @@ export const QuizScreen: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isGenerating}>
-            {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tạo bằng AI...</> : <><Sparkles className="w-4 h-4" /> Tạo & Bắt đầu làm bài</>}
+          <Button type="submit" className="w-full" disabled={isGenerating || !topic.trim()}>
+            {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tạo bằng AI...</> : <><Sparkles className="w-4 h-4" /> Tạo &amp; Bắt đầu làm bài</>}
           </Button>
         </form>
       </div>
@@ -167,16 +241,17 @@ export const QuizScreen: React.FC = () => {
   }
 
   if (step === 'results' && result && quiz) {
+    const isPassed = result.score >= 70;
     return (
       <div className="flex items-center justify-center min-h-[60vh] animate-slide-up pb-20 md:pb-0">
         <div className="glass-card p-8 max-w-lg w-full text-center relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-green-400 to-primary"></div>
-          <div className="w-24 h-24 rounded-full bg-surface border-[8px] border-green-500/20 flex items-center justify-center mx-auto mb-6">
-            <span className="text-3xl font-bold text-white">{Math.round(result.score)}%</span>
+          <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${isPassed ? 'from-green-400 to-primary' : 'from-orange-400 to-red-500'}`}></div>
+          <div className={`w-24 h-24 rounded-full bg-surface border-[8px] flex items-center justify-center mx-auto mb-6 ${isPassed ? 'border-green-500/20' : 'border-orange-500/20'}`}>
+            <span className={`text-3xl font-bold ${isPassed ? 'text-green-400' : 'text-orange-400'}`}>{Math.round(result.score)}%</span>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Đã hoàn thành!</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">{isPassed ? '🎉 Xuất sắc!' : '💪 Cố lên!'}</h2>
           <p className="text-gray-400 text-sm mb-6">
-            Bạn đã trả lời đúng {result.correct_answers} trên tổng số {quiz.total_questions} câu.
+            Bạn đã trả lời đúng <span className="text-white font-semibold">{result.correct_answers}</span> trên tổng số <span className="text-white font-semibold">{quiz.total_questions}</span> câu.
           </p>
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-surface p-4 rounded-xl text-center">
@@ -189,7 +264,21 @@ export const QuizScreen: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <Button variant="secondary" className="w-full" onClick={() => setStep('setup')}>Làm bài khác</Button>
+            <Button className="w-full" onClick={() => {
+              setAnswers({});
+              setCurrentQ(0);
+              setStartTime(Date.now());
+              setStep('taking');
+            }}>
+              <History className="w-4 h-4" /> Thi lại bài này
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={() => navigate('/quizzes')}>Tạo bài mới</Button>
+            <button
+              onClick={() => navigate('/quiz-history')}
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors mt-1 flex items-center justify-center gap-1"
+            >
+              <History className="w-3 h-3" /> Xem lịch sử tất cả các bài
+            </button>
           </div>
         </div>
       </div>

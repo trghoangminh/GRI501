@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Map, MessageSquare, Folder, HelpCircle, BarChart2, Settings, Sparkles, User } from 'lucide-react';
+import { LayoutDashboard, Map, MessageSquare, Folder, HelpCircle, BarChart2, Settings, Sparkles, User, History } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -10,6 +10,7 @@ export const NAV_ITEMS = [
   { path: '/chat', label: 'Chat AI', icon: MessageSquare },
   { path: '/library', label: 'Thư viện', icon: Folder },
   { path: '/quizzes', label: 'Trắc nghiệm', icon: HelpCircle },
+  { path: '/quiz-history', label: 'Lịch sử thi', icon: History },
   { path: '/analytics', label: 'Thống kê', icon: BarChart2 },
 ];
 

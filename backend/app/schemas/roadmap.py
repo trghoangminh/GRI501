@@ -3,6 +3,12 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
+class RoadmapGenerateRequest(BaseModel):
+    learning_goal: str
+    current_level: str = "Beginner"
+    hours_per_week: int = 5
+    deadline: str = "1 month"
+
 class MilestoneResource(BaseModel):
     title: str
     url: str

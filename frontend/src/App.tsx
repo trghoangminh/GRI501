@@ -10,6 +10,7 @@ import { RoadmapScreen } from './screens/RoadmapScreen';
 import { ChatbotScreen } from './screens/ChatbotScreen';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { QuizScreen } from './screens/QuizScreen';
+import { QuizHistoryScreen } from './screens/QuizHistoryScreen';
 import { AnalyticsScreen } from './screens/AnalyticsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
@@ -75,6 +76,7 @@ function AppContent() {
         <Route path="/chat" element={<ChatbotScreen />} />
         <Route path="/library" element={<LibraryScreen />} />
         <Route path="/quizzes" element={<QuizScreen />} />
+        <Route path="/quiz-history" element={<QuizHistoryScreen />} />
         <Route path="/analytics" element={<AnalyticsScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

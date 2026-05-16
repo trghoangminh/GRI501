@@ -4,6 +4,8 @@ import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,6 +27,8 @@ export const ChatbotScreen: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,17 +62,22 @@ export const ChatbotScreen: React.FC = () => {
     }
   };
 
-  const deleteSession = async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setIsDeleting(true);
     try {
-      await apiClient.delete(`/api/chat/sessions/${sessionId}`);
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      if (activeSessionId === sessionId) {
+      await apiClient.delete(`/api/chat/sessions/${sessionToDelete.id}`);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+      if (activeSessionId === sessionToDelete.id) {
         setActiveSessionId(null);
         setMessages([{ role: 'assistant', content: 'Đã xoá phiên chat. Vui lòng tạo một phiên chat mới hoặc chọn phiên khác.' }]);
       }
+      toast.success('Đã xoá đoạn chat thành công');
     } catch {
       toast.error('Xoá phiên chat thất bại.');
+    } finally {
+      setIsDeleting(false);
+      setSessionToDelete(null);
     }
   };
 
@@ -76,27 +85,33 @@ export const ChatbotScreen: React.FC = () => {
     e?.preventDefault();
     if (!input.trim() || isStreaming) return;
 
+    const userMessage = input.trim();
+    setIsStreaming(true);
+    setInput('');
+    
+    // Optimistically add user message and assistant placeholder
+    setMessages((prev) => [
+      ...prev, 
+      { role: 'user', content: userMessage },
+      { role: 'assistant', content: '' }
+    ]);
+
     // Ensure there is an active session
     let sessionId = activeSessionId;
     if (!sessionId) {
       try {
-        const res = await apiClient.post('/api/chat/sessions', { title: input.slice(0, 30) });
+        const res = await apiClient.post('/api/chat/sessions', { title: userMessage.slice(0, 30) });
         sessionId = res.data.id;
         setActiveSessionId(sessionId);
         setSessions((prev) => [res.data, ...prev]);
       } catch {
         toast.error('Tạo phiên chat thất bại. Backend có đang chạy không?');
+        setIsStreaming(false);
+        setMessages((prev) => prev.slice(0, -2)); // Remove the optimistic messages
+        setInput(userMessage); // Restore input
         return;
       }
     }
-
-    const userMessage = input.trim();
-    setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
-    setIsStreaming(true);
-
-    // Add streaming placeholder
-    setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
     try {
       const token = localStorage.getItem('access_token');
@@ -184,7 +199,10 @@ export const ChatbotScreen: React.FC = () => {
               <span className="flex-1 truncate">{s.title}</span>
               <Trash2
                 className="w-3.5 h-3.5 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 shrink-0 transition-all"
-                onClick={(e) => deleteSession(s.id, e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSessionToDelete(s);
+                }}
               />
             </button>
           ))}
@@ -214,13 +232,19 @@ export const ChatbotScreen: React.FC = () => {
                 "p-4 rounded-2xl text-sm leading-relaxed shadow-sm max-w-[80%]",
                 msg.role === 'user' ? "bg-primary text-white rounded-br-none" : "bg-surface border border-border rounded-tl-none text-gray-100"
               )}>
-                {msg.content || (isStreaming && i === messages.length - 1 ? (
+                {msg.content ? (
+                  <div className="prose prose-sm prose-invert max-w-none text-gray-100 prose-p:leading-relaxed prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-a:text-primary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (isStreaming && i === messages.length - 1 ? (
                   <div className="flex items-center gap-1 h-4">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
                   </div>
-                ) : '')}
+                ) : null)}
                 {msg.has_rag_context && (
                   <div className="mt-3 flex gap-2">
                     <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold bg-background px-2 py-1 rounded-md border border-border/50">
@@ -254,6 +278,26 @@ export const ChatbotScreen: React.FC = () => {
           <div className="text-center mt-3 text-xs text-gray-500">AI có thể mắc lỗi. Vui lòng xác minh lại các thông tin quan trọng.</div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-border p-6 rounded-2xl max-w-sm w-full mx-4 shadow-2xl animate-slide-up">
+            <h3 className="text-lg font-semibold text-white mb-2">Xác nhận xoá</h3>
+            <p className="text-sm text-gray-400 mb-6">
+              Bạn có chắc chắn muốn xoá đoạn chat "<span className="text-gray-200 font-medium">{sessionToDelete.title}</span>"? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button onClick={() => setSessionToDelete(null)} disabled={isDeleting} className="bg-surface hover:bg-surfaceHover text-gray-300 border border-border shadow-none">
+                Huỷ bỏ
+              </Button>
+              <Button onClick={confirmDeleteSession} disabled={isDeleting} className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20">
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xoá ngay'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

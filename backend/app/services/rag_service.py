@@ -113,9 +113,9 @@ def search_context(user_id: UUID, query: str, top_k: int = 3) -> list[str]:
         client = get_qdrant_client()
         from qdrant_client.http.models import Filter, FieldCondition, MatchValue
         
-        results = client.search(
+        results = client.query_points(
             collection_name=COLLECTION_NAME,
-            query_vector=query_vector,
+            query=query_vector,
             query_filter=Filter(
                 must=[
                     FieldCondition(
@@ -127,7 +127,7 @@ def search_context(user_id: UUID, query: str, top_k: int = 3) -> list[str]:
             limit=top_k
         )
         
-        return [res.payload["text"] for res in results if res.payload]
+        return [res.payload["text"] for res in results.points if res.payload]
     except Exception as e:
         print(f"Error searching context: {e}")
         return []

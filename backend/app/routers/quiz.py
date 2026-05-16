@@ -65,6 +65,17 @@ def submit_attempt(quiz_id: UUID, req: QuizAttemptReq, db: Session = Depends(get
         "explanations": explanations
     }
 
+@router.get("/{quiz_id}/attempts")
+def get_quiz_attempts(quiz_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id, Quiz.user_id == current_user.id).first()
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    attempts = db.query(QuizAttempt).filter(
+        QuizAttempt.quiz_id == quiz_id,
+        QuizAttempt.user_id == current_user.id
+    ).order_by(QuizAttempt.completed_at.desc()).all()
+    return [{"id": str(a.id), "score": a.score, "time_taken_seconds": a.time_taken_seconds, "completed_at": a.completed_at.isoformat()} for a in attempts]
+
 @router.get("/attempts/stats", response_model=QuizStatsResponse)
 def get_quiz_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == current_user.id).order_by(QuizAttempt.completed_at.desc()).all()

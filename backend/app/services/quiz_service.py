@@ -7,11 +7,11 @@ from app.models.quiz import Quiz, QuizQuestion
 from app.core.llm import get_llm
 from fastapi import HTTPException
 
-QUIZ_SYSTEM_PROMPT = """You are an expert quiz creator. Generate multiple choice questions.
-Return ONLY valid JSON array, no markdown."""
+QUIZ_SYSTEM_PROMPT = """Bạn là một chuyên gia tạo câu hỏi trắc nghiệm. Hãy tạo các câu hỏi trắc nghiệm bằng TIẾNG VIỆT.
+Chỉ trả về ĐÚNG ĐỊNH DẠNG JSON array, không sử dụng markdown, không giải thích thêm."""
 
 def generate_quiz_json(topic_or_content: str, num_questions: int) -> list:
-    prompt = f"""Generate {num_questions} multiple choice questions about: {topic_or_content}
+    prompt = f"""Tạo {num_questions} câu hỏi trắc nghiệm bằng TIẾNG VIỆT về chủ đề: {topic_or_content}
 
 Return JSON array:
 [
@@ -31,13 +31,20 @@ Return JSON array:
     response = llm.invoke(messages)
     
     try:
-        content = response.content.strip()
+        content_raw = response.content
+        if isinstance(content_raw, list):
+            content = "".join([c.get("text", "") for c in content_raw if isinstance(c, dict) and "text" in c])
+        else:
+            content = str(content_raw)
+
+        content = content.strip()
         if content.startswith("```json"):
-            content = content[7:-3]
+            content = content[7:-3].strip()
         elif content.startswith("```"):
-            content = content[3:-3]
+            content = content[3:-3].strip()
         return json.loads(content)
     except Exception as e:
+        print(f"Error parsing quiz JSON: {e}")
         raise HTTPException(status_code=500, detail="Failed to parse LLM response into JSON")
 
 def generate_quiz(db: Session, user_id: UUID, topic: str, num_questions: int, document_id: UUID = None) -> Quiz:
@@ -51,10 +58,10 @@ def generate_quiz(db: Session, user_id: UUID, topic: str, num_questions: int, do
         if not document.summary:
             from app.services.document_service import generate_document_summary
             generate_document_summary(db, document)
-        content_to_use = f"Document Title: {document.original_name}\nSummary: {document.summary}"
+        content_to_use = f"Tên tài liệu: {document.original_name}\nTóm tắt: {document.summary}"
         title = f"Quiz: {document.original_name}"
     else:
-        title = f"Quiz on {topic}"
+        title = f"Quiz về: {topic}"
 
     questions_data = generate_quiz_json(content_to_use, num_questions)
     

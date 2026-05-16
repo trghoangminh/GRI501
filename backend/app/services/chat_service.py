@@ -7,11 +7,12 @@ from app.services.rag_service import search_context
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 
-SYSTEM_PROMPT = """You are a helpful AI study assistant. Answer questions based on 
-the student's uploaded study materials when context is provided.
-Be clear, educational, and encouraging.
-If context is provided, prioritize information from it.
-If no context, answer from general knowledge."""
+SYSTEM_PROMPT = """Bạn là một trợ lý học tập AI thông minh và thân thiện. 
+QUY TẮC QUAN TRỌNG:
+1. LUÔN LUÔN trả lời bằng Tiếng Việt, trừ khi người dùng yêu cầu ngôn ngữ khác.
+2. Nếu có 'Context' (Ngữ cảnh từ tài liệu của người dùng), hãy ưu tiên sử dụng thông tin trong đó để trả lời.
+3. Nếu 'Context' KHÔNG liên quan đến câu hỏi, hoặc không có 'Context', hãy bỏ qua nó và trả lời bằng kiến thức chung của bạn.
+4. Trình bày rõ ràng, dễ hiểu, mang tính giáo dục và khích lệ."""
 
 def stream_chat_message(db: Session, session_id: UUID, user_id: UUID, content: str):
     """Generates a streaming response, saving user and assistant messages."""
@@ -51,8 +52,15 @@ def stream_chat_message(db: Session, session_id: UUID, user_id: UUID, content: s
         try:
             async for chunk in llm.astream(messages):
                 if chunk.content:
-                    assistant_content += chunk.content
-                    yield f"data: {json.dumps({'chunk': chunk.content, 'done': False})}\n\n"
+                    chunk_text = ""
+                    if isinstance(chunk.content, str):
+                        chunk_text = chunk.content
+                    elif isinstance(chunk.content, list):
+                        chunk_text = "".join([c.get("text", "") for c in chunk.content if isinstance(c, dict) and "text" in c])
+                        
+                    if chunk_text:
+                        assistant_content += chunk_text
+                        yield f"data: {json.dumps({'chunk': chunk_text, 'done': False})}\n\n"
                     
             # Save assistant message
             assistant_msg = ChatMessage(

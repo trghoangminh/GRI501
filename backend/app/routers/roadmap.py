@@ -4,21 +4,20 @@ from uuid import UUID
 from app.database import get_db
 from app.models.user import User
 from app.models.roadmap import Roadmap, Milestone
-from app.schemas.roadmap import RoadmapResponse, MilestoneUpdate, MilestoneResponse
+from app.schemas.roadmap import RoadmapResponse, MilestoneUpdate, MilestoneResponse, RoadmapGenerateRequest
 from app.core.dependencies import get_current_user
 from app.services.roadmap_service import create_roadmap, get_current_roadmap
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
 @router.post("/generate", response_model=RoadmapResponse)
-def generate(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # If user already has an active roadmap, archive it or block? 
-    # Spec says POST /regenerate drops old one, so /generate should create new or return existing.
+def generate(request: RoadmapGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     existing = get_current_roadmap(db, current_user.id)
     if existing:
-        return existing
+        existing.status = "archived"
+        db.commit()
         
-    roadmap = create_roadmap(db, current_user)
+    roadmap = create_roadmap(db, current_user, request)
     return roadmap
 
 @router.get("/", response_model=RoadmapResponse)
@@ -29,13 +28,13 @@ def get_roadmap(db: Session = Depends(get_db), current_user: User = Depends(get_
     return roadmap
 
 @router.post("/regenerate", response_model=RoadmapResponse)
-def regenerate(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def regenerate(request: RoadmapGenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     existing = get_current_roadmap(db, current_user.id)
     if existing:
         existing.status = "archived"
         db.commit()
         
-    roadmap = create_roadmap(db, current_user)
+    roadmap = create_roadmap(db, current_user, request)
     return roadmap
 
 @router.patch("/milestones/{milestone_id}", response_model=MilestoneResponse)

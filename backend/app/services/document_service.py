@@ -45,17 +45,23 @@ def generate_document_summary(db: Session, document: Document) -> str:
     # Truncate text if too long (Gemini context is large, but to be safe and fast)
     text = text[:30000] 
     
-    prompt = f"""Summarize the following document in 3-5 paragraphs.
-Focus on key concepts, main points, and important details.
-Write in clear, concise language suitable for studying.
+    prompt = f"""Hãy tóm tắt tài liệu sau đây trong 3-5 đoạn văn bằng TIẾNG VIỆT.
+Tập trung vào các khái niệm chính, ý chính và các chi tiết quan trọng.
+Hãy viết rõ ràng, súc tích, phù hợp cho mục đích học tập.
 
-Document content:
+Nội dung tài liệu:
 {text}"""
 
     llm = get_llm(temperature=0.3)
     response = llm.invoke([("human", prompt)])
     
-    summary = response.content.strip()
+    content_raw = response.content
+    if isinstance(content_raw, list):
+        summary = "".join([c.get("text", "") for c in content_raw if isinstance(c, dict) and "text" in c])
+    else:
+        summary = str(content_raw)
+    summary = summary.strip()
+    
     document.summary = summary
     db.commit()
     

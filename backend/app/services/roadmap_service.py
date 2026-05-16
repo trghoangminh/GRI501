@@ -3,18 +3,19 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.roadmap import Roadmap, Milestone
+from app.schemas.roadmap import RoadmapGenerateRequest
 from app.core.llm import get_llm
 from fastapi import HTTPException
 
-ROADMAP_SYSTEM_PROMPT = """You are an expert learning coach. Generate a detailed, realistic study roadmap.
-Return ONLY valid JSON, no markdown, no explanation."""
+ROADMAP_SYSTEM_PROMPT = """Bạn là một chuyên gia huấn luyện học tập. Hãy tạo một lộ trình học tập chi tiết, thực tế bằng TIẾNG VIỆT.
+Chỉ trả về ĐÚNG ĐỊNH DẠNG JSON, không sử dụng markdown, không giải thích thêm."""
 
-def generate_roadmap_json(user: User) -> dict:
+def generate_roadmap_json(request_data: RoadmapGenerateRequest) -> dict:
     prompt = f"""Create a study roadmap for:
-- Goal: {user.learning_goal or 'Not specified'}
-- Current level: {user.current_level or 'Beginner'}
-- Available time: {user.hours_per_week or 5} hours/week
-- Deadline: {user.deadline or 'Not specified'}
+- Goal: {request_data.learning_goal or 'Not specified'}
+- Current level: {request_data.current_level or 'Beginner'}
+- Available time: {request_data.hours_per_week or 5} hours/week
+- Deadline: {request_data.deadline or 'Not specified'}
 
 Return JSON:
 {{
@@ -39,18 +40,26 @@ Return JSON:
     
     # Parse JSON from response
     try:
-        content = response.content.strip()
+        content_raw = response.content
+        if isinstance(content_raw, list):
+            content = "".join([c.get("text", "") for c in content_raw if isinstance(c, dict) and "text" in c])
+        else:
+            content = str(content_raw)
+            
+        content = content.strip()
         if content.startswith("```json"):
-            content = content[7:-3]
+            content = content[7:-3].strip()
         elif content.startswith("```"):
-            content = content[3:-3]
+            content = content[3:-3].strip()
+            
         return json.loads(content)
     except Exception as e:
+        print(f"Error parsing roadmap JSON: {e}")
         raise HTTPException(status_code=500, detail="Failed to parse LLM response into JSON")
 
-def create_roadmap(db: Session, user: User) -> Roadmap:
+def create_roadmap(db: Session, user: User, request_data: RoadmapGenerateRequest) -> Roadmap:
     # Generate JSON
-    roadmap_data = generate_roadmap_json(user)
+    roadmap_data = generate_roadmap_json(request_data)
     
     # Save Roadmap
     roadmap = Roadmap(

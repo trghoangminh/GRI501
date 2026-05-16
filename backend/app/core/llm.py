@@ -9,7 +9,7 @@ import os
 genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
 
 # Define standard models
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-flash-latest"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # Ensure Qdrant storage exists

@@ -9,6 +9,14 @@ export const RoadmapScreen: React.FC = () => {
   const [roadmap, setRoadmap] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [formData, setFormData] = useState({
+    learning_goal: '',
+    current_level: 'Beginner',
+    hours_per_week: 5,
+    deadline: '1 month'
+  });
 
   const fetchRoadmap = async () => {
     setIsLoading(true);
@@ -24,10 +32,17 @@ export const RoadmapScreen: React.FC = () => {
 
   useEffect(() => { fetchRoadmap(); }, []);
 
-  const handleRegenerate = async () => {
+  const handleGenerateSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!formData.learning_goal.trim()) {
+      toast.error('Vui lòng nhập mục tiêu học tập');
+      return;
+    }
+    
     setIsRegenerating(true);
+    setShowGenerateModal(false);
     try {
-      const res = await apiClient.post('/api/roadmap/regenerate');
+      const res = await apiClient.post('/api/roadmap/generate', formData);
       setRoadmap(res.data);
       toast.success('Đã tạo lộ trình mới!');
     } catch {
@@ -74,7 +89,7 @@ export const RoadmapScreen: React.FC = () => {
             <span className="text-sm text-gray-400">Hoàn thành {completionPct}%</span>
           </div>
         </div>
-        <Button variant="secondary" className="hidden sm:flex" onClick={handleRegenerate} disabled={isRegenerating}>
+        <Button variant="secondary" className="hidden sm:flex" onClick={() => setShowGenerateModal(true)} disabled={isRegenerating}>
           {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           Tạo Lại Kế Hoạch
         </Button>
@@ -85,7 +100,7 @@ export const RoadmapScreen: React.FC = () => {
           <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
           <h3 className="text-xl font-bold text-white mb-2">Chưa có Lộ trình</h3>
           <p className="text-gray-400 mb-6">Hãy tạo lộ trình được AI hỗ trợ để bắt đầu học.</p>
-          <Button onClick={handleRegenerate} disabled={isRegenerating}>
+          <Button onClick={() => setShowGenerateModal(true)} disabled={isRegenerating}>
             {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Tạo Lộ Trình
           </Button>
@@ -150,6 +165,73 @@ export const RoadmapScreen: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Generate Roadmap Modal */}
+      {showGenerateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-border p-6 rounded-2xl max-w-md w-full mx-4 shadow-2xl animate-slide-up">
+            <h3 className="text-xl font-bold text-white mb-4">Tạo Lộ Trình Học Tập</h3>
+            
+            <form onSubmit={handleGenerateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Mục tiêu học tập</label>
+                <input 
+                  type="text" 
+                  value={formData.learning_goal}
+                  onChange={(e) => setFormData({...formData, learning_goal: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary outline-none"
+                  placeholder="Ví dụ: Học lập trình Python cơ bản"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Trình độ hiện tại</label>
+                <select 
+                  value={formData.current_level}
+                  onChange={(e) => setFormData({...formData, current_level: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary outline-none"
+                >
+                  <option value="Beginner">Người mới bắt đầu (Beginner)</option>
+                  <option value="Intermediate">Có kiến thức nền (Intermediate)</option>
+                  <option value="Advanced">Nâng cao (Advanced)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Thời gian rảnh mỗi tuần (giờ)</label>
+                <input 
+                  type="number" 
+                  min="1" max="100"
+                  value={formData.hours_per_week}
+                  onChange={(e) => setFormData({...formData, hours_per_week: parseInt(e.target.value) || 5})}
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Thời hạn mong muốn</label>
+                <input 
+                  type="text" 
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({...formData, deadline: e.target.value})}
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary outline-none"
+                  placeholder="Ví dụ: 1 tháng, 3 tháng..."
+                />
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <Button type="button" variant="secondary" onClick={() => setShowGenerateModal(false)}>
+                  Huỷ bỏ
+                </Button>
+                <Button type="submit">
+                  Tạo Lộ Trình
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
