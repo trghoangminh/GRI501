@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { History, Trophy, Clock, RotateCcw, ChevronRight, Loader2, Sparkles, CheckSquare } from 'lucide-react';
+import { History, Trophy, Clock, RotateCcw, ChevronRight, Loader2, Sparkles, CheckSquare, X, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
@@ -21,6 +21,15 @@ interface Attempt {
   score: number;
   time_taken_seconds: number;
   completed_at: string;
+}
+
+interface AttemptDetail {
+  question_text: string;
+  options: Record<string, string>;
+  user_answer: string | null;
+  correct_answer: string;
+  is_correct: boolean;
+  explanation: string;
 }
 
 const ScoreBadge: React.FC<{ score: number }> = ({ score }) => (
@@ -51,6 +60,12 @@ export const QuizHistoryScreen: React.FC = () => {
   const [attempts, setAttempts] = useState<Record<string, Attempt[]>>({});
   const [loadingAttempts, setLoadingAttempts] = useState<string | null>(null);
 
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [selectedQuizTitle, setSelectedQuizTitle] = useState<string>('');
+  const [attemptDetails, setAttemptDetails] = useState<AttemptDetail[] | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [filterDetail, setFilterDetail] = useState<'all' | 'correct' | 'wrong'>('all');
+
   useEffect(() => {
     apiClient.get('/api/quiz/').then(res => {
       setQuizzes(res.data);
@@ -79,6 +94,23 @@ export const QuizHistoryScreen: React.FC = () => {
   const handleRetake = (quizId: string) => {
     // Navigate to quiz taking page with the existing quiz id
     navigate(`/quizzes?retake=${quizId}`);
+  };
+
+  const openAttemptDetails = async (quizId: string, attemptId: string, quizTitle: string) => {
+    setSelectedQuizTitle(quizTitle);
+    setSelectedAttemptId(attemptId);
+    setLoadingDetails(true);
+    setAttemptDetails(null);
+    setFilterDetail('all');
+    try {
+      const res = await apiClient.get(`/api/quiz/${quizId}/attempts/${attemptId}`);
+      setAttemptDetails(res.data.details);
+    } catch {
+      toast.error('Không thể tải chi tiết bài làm');
+      setSelectedAttemptId(null);
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   if (isLoading) return (
@@ -152,7 +184,11 @@ export const QuizHistoryScreen: React.FC = () => {
                   <p className="text-gray-500 text-sm text-center py-4">Chưa có lần thi nào. Bấm "Thi lại" để bắt đầu!</p>
                 ) : (
                   attempts[q.id]?.map((a, idx) => (
-                    <div key={a.id} className="flex items-center gap-3 p-3 bg-surface rounded-xl">
+                    <div 
+                      key={a.id} 
+                      className="flex items-center gap-3 p-3 bg-surface rounded-xl cursor-pointer hover:bg-surfaceHover transition-colors border border-transparent hover:border-white/5"
+                      onClick={() => openAttemptDetails(q.id, a.id, q.title)}
+                    >
                       <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
                         #{attempts[q.id].length - idx}
                       </div>
@@ -173,6 +209,90 @@ export const QuizHistoryScreen: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Attempt Details Modal */}
+      {selectedAttemptId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface border border-border shadow-2xl rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-start justify-between mb-4 flex-shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Chi tiết bài làm</h3>
+                <p className="text-sm text-gray-400 truncate max-w-[280px] sm:max-w-md">{selectedQuizTitle}</p>
+              </div>
+              <button onClick={() => setSelectedAttemptId(null)}>
+                <X className="w-6 h-6 text-gray-400 hover:text-white transition-colors" />
+              </button>
+            </div>
+
+            {loadingDetails ? (
+              <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            ) : attemptDetails && (
+              <>
+                <div className="flex gap-2 p-1 bg-black/20 border border-white/5 rounded-lg mb-6 flex-shrink-0">
+                  <button 
+                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${filterDetail === 'all' ? 'bg-primary text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                    onClick={() => setFilterDetail('all')}
+                  >
+                    Tất cả ({attemptDetails.length})
+                  </button>
+                  <button 
+                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${filterDetail === 'correct' ? 'bg-green-500/20 text-green-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                    onClick={() => setFilterDetail('correct')}
+                  >
+                    Đúng ({attemptDetails.filter(d => d.is_correct).length})
+                  </button>
+                  <button 
+                    className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${filterDetail === 'wrong' ? 'bg-red-500/20 text-red-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                    onClick={() => setFilterDetail('wrong')}
+                  >
+                    Sai ({attemptDetails.filter(d => !d.is_correct).length})
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+                  {attemptDetails.filter(d => filterDetail === 'all' || (filterDetail === 'correct' && d.is_correct) || (filterDetail === 'wrong' && !d.is_correct)).map((detail, i) => (
+                    <div key={i} className={`p-5 rounded-xl border ${detail.is_correct ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                      <div className="flex gap-3 mb-4">
+                        {detail.is_correct ? <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0 mt-0.5" /> : <XCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />}
+                        <div>
+                          <p className="text-white font-medium mb-3 leading-relaxed">{detail.question_text}</p>
+                          <div className="space-y-2">
+                            {Object.entries(detail.options).map(([key, value]) => {
+                              const isSelected = detail.user_answer === key;
+                              const isActualCorrect = detail.correct_answer === key;
+                              let optionClass = "bg-white/5 border-white/10 text-gray-300";
+                              
+                              if (isActualCorrect) {
+                                optionClass = "bg-green-500/20 border-green-500/40 text-green-300";
+                              } else if (isSelected && !detail.is_correct) {
+                                optionClass = "bg-red-500/20 border-red-500/40 text-red-300";
+                              }
+
+                              return (
+                                <div key={key} className={`flex items-center gap-3 p-3 rounded-lg border ${optionClass}`}>
+                                  <div className="w-6 h-6 rounded bg-black/20 flex items-center justify-center text-xs font-bold shrink-0">{key}</div>
+                                  <span className="text-sm">{value}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          {detail.explanation && (
+                            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                              <p className="text-xs font-bold text-blue-400 mb-1">Giải thích:</p>
+                              <p className="text-sm text-blue-300/80">{detail.explanation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

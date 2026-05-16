@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, MessageSquare, Sparkles, Send, Trash2, Loader2, BookOpen } from 'lucide-react';
+import { Plus, MessageSquare, Sparkles, Send, Trash2, Loader2, BookOpen, X, FileText } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
 import apiClient from '../api/client';
@@ -11,6 +11,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   has_rag_context?: boolean;
+  is_placeholder?: boolean;
 }
 
 interface Session {
@@ -19,17 +20,31 @@ interface Session {
   updated_at: string;
 }
 
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+}
+
 export const ChatbotScreen: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Xin chào! Tôi là trợ lý học tập AI của bạn. Tôi có quyền truy cập vào các tài liệu bạn đã tải lên. Hôm nay bạn muốn học về gì?' }
+    { role: 'assistant', content: 'Xin chào! Tôi là trợ lý học tập AI của bạn. Tôi có quyền truy cập vào các tài liệu bạn đã tải lên. Hôm nay bạn muốn học về gì?', is_placeholder: true }
   ]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [contentToSave, setContentToSave] = useState('');
+  const [saveMode, setSaveMode] = useState<'new' | 'append'>('new');
+  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [selectedNoteId, setSelectedNoteId] = useState('');
+  const [existingNotes, setExistingNotes] = useState<Note[]>([]);
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => {
     apiClient.get('/api/chat/sessions').then((res) => setSessions(res.data)).catch(() => {});
@@ -45,7 +60,7 @@ export const ChatbotScreen: React.FC = () => {
       const newSession = res.data;
       setSessions((prev) => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
-      setMessages([{ role: 'assistant', content: 'Đã bắt đầu phiên mới! Hãy hỏi tôi bất cứ điều gì về tài liệu của bạn.' }]);
+      setMessages([{ role: 'assistant', content: 'Đã bắt đầu phiên mới! Hãy hỏi tôi bất cứ điều gì về tài liệu của bạn.', is_placeholder: true }]);
     } catch {
       toast.error('Tạo phiên chat mới thất bại.');
     }
@@ -56,7 +71,7 @@ export const ChatbotScreen: React.FC = () => {
     try {
       const res = await apiClient.get(`/api/chat/sessions/${sessionId}/messages`);
       const dbMessages: Message[] = res.data.map((m: any) => ({ role: m.role, content: m.content, has_rag_context: m.has_rag_context }));
-      setMessages(dbMessages.length > 0 ? dbMessages : [{ role: 'assistant', content: 'Hãy tiếp tục cuộc trò chuyện hoặc đặt một câu hỏi mới.' }]);
+      setMessages(dbMessages.length > 0 ? dbMessages : [{ role: 'assistant', content: 'Hãy tiếp tục cuộc trò chuyện hoặc đặt một câu hỏi mới.', is_placeholder: true }]);
     } catch {
       toast.error('Tải nội dung chat thất bại.');
     }
@@ -70,7 +85,7 @@ export const ChatbotScreen: React.FC = () => {
       setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
       if (activeSessionId === sessionToDelete.id) {
         setActiveSessionId(null);
-        setMessages([{ role: 'assistant', content: 'Đã xoá phiên chat. Vui lòng tạo một phiên chat mới hoặc chọn phiên khác.' }]);
+        setMessages([{ role: 'assistant', content: 'Đã xoá phiên chat. Vui lòng tạo một phiên chat mới hoặc chọn phiên khác.', is_placeholder: true }]);
       }
       toast.success('Đã xoá đoạn chat thành công');
     } catch {
@@ -81,15 +96,54 @@ export const ChatbotScreen: React.FC = () => {
     }
   };
 
-  const saveToNote = async (content: string) => {
+  const openSaveModal = async (content: string) => {
+    setContentToSave(content);
+    setNewNoteTitle('Lưu từ Chat AI - ' + new Date().toLocaleDateString('vi-VN'));
+    setIsSaveModalOpen(true);
     try {
-      await apiClient.post('/api/notes/', {
-        title: 'Lưu từ Chat AI - ' + new Date().toLocaleDateString('vi-VN'),
-        content: content
-      });
-      toast.success('Đã lưu thành công vào Sổ tay!');
+      const res = await apiClient.get('/api/notes/');
+      setExistingNotes(res.data);
+      if (res.data.length > 0) {
+        setSelectedNoteId(res.data[0].id);
+      }
+    } catch (error) {
+      toast.error('Không thể tải danh sách sổ tay');
+    }
+  };
+
+  const handleConfirmSaveNote = async () => {
+    setIsSavingNote(true);
+    try {
+      if (saveMode === 'new') {
+        if (!newNoteTitle.trim()) {
+          toast.error('Vui lòng nhập tiêu đề');
+          return;
+        }
+        await apiClient.post('/api/notes/', {
+          title: newNoteTitle,
+          content: contentToSave
+        });
+        toast.success('Đã tạo ghi chú mới thành công!');
+      } else {
+        if (!selectedNoteId) {
+          toast.error('Vui lòng chọn một ghi chú');
+          return;
+        }
+        const targetNote = existingNotes.find(n => n.id === selectedNoteId);
+        if (!targetNote) return;
+        
+        const updatedContent = targetNote.content + '\n\n---\n\n' + contentToSave;
+        await apiClient.put(`/api/notes/${selectedNoteId}`, {
+          title: targetNote.title,
+          content: updatedContent
+        });
+        toast.success('Đã thêm vào ghi chú thành công!');
+      }
+      setIsSaveModalOpen(false);
     } catch {
-      toast.error('Lưu vào sổ tay thất bại');
+      toast.error('Lưu ghi chú thất bại');
+    } finally {
+      setIsSavingNote(false);
     }
   };
 
@@ -264,10 +318,10 @@ export const ChatbotScreen: React.FC = () => {
                     </span>
                   </div>
                 )}
-                {msg.role === 'assistant' && msg.content && !isStreaming && (
+                {msg.role === 'assistant' && msg.content && !msg.is_placeholder && !isStreaming && (
                   <div className="mt-3 flex gap-2 border-t border-border/50 pt-2">
                     <button 
-                      onClick={() => saveToNote(msg.content)}
+                      onClick={() => openSaveModal(msg.content)}
                       className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors"
                     >
                       <BookOpen className="w-3.5 h-3.5" /> Lưu vào Sổ tay
@@ -303,18 +357,87 @@ export const ChatbotScreen: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {sessionToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-background border border-border p-6 rounded-2xl max-w-sm w-full mx-4 shadow-2xl animate-slide-up">
-            <h3 className="text-lg font-semibold text-white mb-2">Xác nhận xoá</h3>
-            <p className="text-sm text-gray-400 mb-6">
-              Bạn có chắc chắn muốn xoá đoạn chat "<span className="text-gray-200 font-medium">{sessionToDelete.title}</span>"? Hành động này không thể hoàn tác.
-            </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-white/10 shadow-2xl rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-bold text-white mb-2">Xoá phiên chat</h3>
+            <p className="text-sm text-gray-400 mb-6">Bạn có chắc chắn muốn xoá phiên "{sessionToDelete.title}"? Hành động này không thể hoàn tác.</p>
             <div className="flex justify-end gap-3">
-              <Button onClick={() => setSessionToDelete(null)} disabled={isDeleting} className="bg-surface hover:bg-surfaceHover text-gray-300 border border-border shadow-none">
-                Huỷ bỏ
+              <Button variant="secondary" onClick={() => setSessionToDelete(null)} disabled={isDeleting}>Huỷ</Button>
+              <Button onClick={confirmDeleteSession} disabled={isDeleting} className="bg-red-500 hover:bg-red-600 text-white">
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Xoá
               </Button>
-              <Button onClick={confirmDeleteSession} disabled={isDeleting} className="bg-red-500 hover:bg-red-600 text-white border-none shadow-lg shadow-red-500/20">
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xoá ngay'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Note Modal */}
+      {isSaveModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsSaveModalOpen(false)}>
+          <div className="bg-gray-900 border border-white/10 shadow-2xl rounded-2xl p-6 max-w-md w-full flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> Lưu vào Sổ tay</h3>
+              <button onClick={() => setIsSaveModalOpen(false)}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
+            </div>
+            
+            <div className="flex gap-2 p-1 bg-surface border border-border rounded-lg mb-6">
+              <button 
+                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${saveMode === 'new' ? 'bg-primary text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => setSaveMode('new')}
+              >
+                Tạo mới
+              </button>
+              <button 
+                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${saveMode === 'append' ? 'bg-primary text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                onClick={() => setSaveMode('append')}
+              >
+                Ghi chú cũ
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {saveMode === 'new' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Tiêu đề ghi chú mới</label>
+                  <input 
+                    type="text" 
+                    value={newNoteTitle}
+                    onChange={e => setNewNoteTitle(e.target.value)}
+                    className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Nhập tiêu đề..."
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Chọn ghi chú hiện có</label>
+                  {existingNotes.length === 0 ? (
+                    <div className="text-sm text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex items-center gap-2">
+                      Bạn chưa có ghi chú nào. Hãy tạo mới.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      {existingNotes.map(note => (
+                        <button
+                          key={note.id}
+                          onClick={() => setSelectedNoteId(note.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3 ${selectedNoteId === note.id ? 'bg-primary/20 border-primary/50 text-white' : 'bg-surface border-border hover:bg-surfaceHover text-gray-300'}`}
+                        >
+                          <FileText className="w-4 h-4 text-gray-500" />
+                          <span className="truncate flex-1 text-sm">{note.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
+              <Button variant="secondary" onClick={() => setIsSaveModalOpen(false)} disabled={isSavingNote}>Huỷ</Button>
+              <Button onClick={handleConfirmSaveNote} disabled={isSavingNote || (saveMode === 'append' && existingNotes.length === 0)}>
+                {isSavingNote ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <BookOpen className="w-4 h-4 mr-2" />}
+                Lưu Ghi Chú
               </Button>
             </div>
           </div>

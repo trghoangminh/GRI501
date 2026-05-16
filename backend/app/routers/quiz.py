@@ -108,6 +108,33 @@ def get_quiz_attempts(quiz_id: UUID, db: Session = Depends(get_db), current_user
     ).order_by(QuizAttempt.completed_at.desc()).all()
     return [{"id": str(a.id), "score": a.score, "time_taken_seconds": a.time_taken_seconds, "completed_at": a.completed_at.isoformat()} for a in attempts]
 
+@router.get("/{quiz_id}/attempts/{attempt_id}")
+def get_quiz_attempt_details(quiz_id: UUID, attempt_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    quiz = db.query(Quiz).filter(Quiz.id == quiz_id, Quiz.user_id == current_user.id).first()
+    attempt = db.query(QuizAttempt).filter(QuizAttempt.id == attempt_id, QuizAttempt.user_id == current_user.id).first()
+    
+    if not quiz or not attempt:
+        raise HTTPException(status_code=404, detail="Not found")
+        
+    details = []
+    for q in quiz.questions:
+        user_answer = attempt.answers.get(str(q.id))
+        is_correct = user_answer == q.correct_answer
+        details.append({
+            "question_text": q.question,
+            "options": {chr(65+i): opt for i, opt in enumerate(q.options)},
+            "user_answer": chr(65+user_answer) if user_answer is not None else None,
+            "correct_answer": chr(65+q.correct_answer),
+            "is_correct": is_correct,
+            "explanation": q.explanation
+        })
+        
+    return {
+        "score": attempt.score,
+        "time_taken_seconds": attempt.time_taken_seconds,
+        "details": details
+    }
+
 @router.get("/attempts/stats", response_model=QuizStatsResponse)
 def get_quiz_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     attempts = db.query(QuizAttempt).filter(QuizAttempt.user_id == current_user.id).order_by(QuizAttempt.completed_at.desc()).all()
